@@ -1,0 +1,28 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"type": "PlatformIO",
+			"task": "Upload and Monitor",
+			"problemMatcher": [
+				"$platformio"
+			],
+			"label": "PlatformIO: Upload and Monitor",
+			"group": {
+				"kind": "build",
+				"isDefault": true
+			}
+		},
+		{
+			"label": "Move Compiled Bin to Upload Folder",
+			"type": "shell",
+			"command": "cp",
+			"args": [
+				".pio/build/adafruit_feather_esp32s3_nopsram/firmware.bin",
+				"examples/firmware.bin"
+			],
+			"group": "build",
+			"problemMatcher": []
+		}
+	]
+}

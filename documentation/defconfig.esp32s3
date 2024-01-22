@@ -1,0 +1,38 @@
+CONFIG_SPIRAM_TRY_ALLOCATE_WIFI_LWIP=y
+CONFIG_ESP32S3_DEFAULT_CPU_FREQ_80=y
+CONFIG_ESP32S3_SPIRAM_SUPPORT=y
+CONFIG_ESP32S3_RTC_CLK_CAL_CYCLES=576
+CONFIG_ESP32S3_UNIVERSAL_MAC_ADDRESSES_TWO=y
+# CONFIG_ESP_SLEEP_GPIO_RESET_WORKAROUND is not set
+# CONFIG_ESP_TASK_WDT_CHECK_IDLE_TASK_CPU1 is not set
+CONFIG_SR_WN_MODEL_WN8_QUANT=y
+CONFIG_SR_WN_WN8_HIESP=y
+CONFIG_SR_MN_ENGLISH=y
+CONFIG_SR_MN_EN_MULTINET5_SINGLE_RECOGNITION_QUANT8=y
+CONFIG_FREERTOS_WATCHPOINT_END_OF_STACK=y
+CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=3120
+# Setting options from power save example: https://github.com/espressif/esp-idf/blob/master/examples/wifi/power_save/sdkconfig.defaults
+# Enable support for power management
+CONFIG_PM_ENABLE=y
+# Enable bt/wifi modem sleep
+CONFIG_BT_CTRL_MODEM_SLEEP=y
+CONFIG_BT_CTRL_MODEM_SLEEP_MODE_1=y
+# Enable tickless idle mode
+CONFIG_FREERTOS_USE_TICKLESS_IDLE=y
+# Put related source code in IRAM
+CONFIG_PM_SLP_IRAM_OPT=y
+CONFIG_PM_RTOS_IDLE_OPT=y
+# Enable wifi sleep iram optimization
+CONFIG_ESP_WIFI_SLP_IRAM_OPT=y
+# Use 1000Hz freertos tick to lower sleep time threshold
+CONFIG_FREERTOS_HZ=1000
+# Disable all GPIO at light sleep
+CONFIG_GPIO_ESP32_SUPPORT_SWITCH_SLP_PULL=y
+CONFIG_PM_SLP_DISABLE_GPIO=y
+# from: https://github.com/espressif/esp-idf/blob/master/examples/bluetooth/nimble/power_save/sdkconfig.40m.esp32s3
+# Enable power down of MAC and baseband in light sleep mode
+CONFIG_ESP_PHY_MAC_BB_PD=y
+# Bluetooth low power clock
+CONFIG_BT_CTRL_LPCLK_SEL_MAIN_XTAL=y
+# Power up main XTAL during light sleep
+CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y

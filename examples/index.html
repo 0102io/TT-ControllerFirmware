@@ -1,0 +1,68 @@
+<!-- to serve this locally, you can use python's built in server with this command from this file's parent directory:
+
+  python -m http.server 8000
+
+-->
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>TappyTap Controller Tester</title>
+  <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.15/dist/tailwind.min.css" rel="stylesheet">
+  <style>
+    #consoleLog {
+      height: 150px;
+      overflow-y: auto;
+      font-size: 14px;
+    }
+    input[type="number"] {
+      text-align: center;
+    }
+  </style>
+</head>
+<body class="bg-gray-100">
+    <div class="container mx-auto mt-12 flex flex-col items-left w-3/4">
+        <h1 class="text-2xl font-bold mb-4">TappyTap Controller Tester</h1>
+        <div class="flex">
+            <button id="connectBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2 mr-2">Connect</button>
+            <button id="getDeviceInfoBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2 mr-2">Get Device Info</button>
+            <button id="uploadCodeBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2">Upload Firmware</button>
+        </div>
+        <button id="tapOutBtn" class="bg-blue-500 text-white w-40 h-10 rounded">TAP_OUT</button>
+        <div class="flex items-center mb-2 pt-2 pb-1">
+          <label class="ml-2">Identifier: <input id="tapoutID" type="number" min="1" max="255" class="w-12 rounded border" value="2"></label>
+      </div>
+        <div class="flex items-center mb-2 pt-2 pb-1">
+            <label class="ml-2">Row: <input id="rowIndex0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">Col: <input id="colIndex0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">On (0.1ms): <input id="onDur0" type="number" min="1" max="30" class="w-12 rounded border" value="10"></label>
+            <label class="ml-2">Off (0.1ms): <input id="offDur0" type="number" min="0" max="10000" class="w-12 rounded border" value="1000"></label>
+            <label class="ml-2">Qty: <input id="qty0" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
+            <label class="text-sm text-gray-600 ml-2">First Tap</label>
+        </div>
+        <div class="flex items-center mb-2 pt-1 pb-1">
+            <label class="ml-2">Row: <input id="rowIndex1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">Col: <input id="colIndex1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">On (0.1ms): <input id="onDur1" type="number" min="1" max="30" class="w-12 rounded border" value="10"></label>
+            <label class="ml-2">Off (0.1ms): <input id="offDur1" type="number" min="1" max="255" class="w-12 rounded border" value="2000"></label>
+            <label class="ml-2">Qty: <input id="qty1" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
+            <label class="text-sm text-gray-600 ml-2">Second Tap</label>
+        </div>
+        <div class="flex items-center mb-2 pt-1 pb-3">
+            <label class="ml-2">Row: <input id="rowIndex2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">Col: <input id="colIndex2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">On (0.1ms): <input id="onDur2" type="number" min="1" max="30" class="w-12 rounded border" value="10"></label>
+            <label class="ml-2">Off (0.1ms): <input id="offDur2" type="number" min="10" max="255" class="w-12 rounded border" value="3000"></label>
+            <label class="ml-2">Qty: <input id="qty2" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
+            <label class="text-sm text-gray-600 ml-2">Third Tap</label>
+        </div>
+    </div>
+    <div id="consoleLog" class="console-log mx-auto mt-4 p-4 bg-white w-3/4 rounded shadow">
+    </div>
+    <div class="console-button-container flex justify-center mt-2">
+      <button id="clearConsoleBtn" class="text-sm text-gray-500">Clear Console</button>
+    </div>  
+    <script src="script.js"></script>
+  </body>
+</html>
