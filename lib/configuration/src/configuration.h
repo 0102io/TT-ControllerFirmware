@@ -23,7 +23,7 @@
 Enter the type of substrate and version number of the substrate here.
 e.g. v12d swatch = SWATCH, 12, 3
 */
-#define CONNECTED_BOARD CUSTOM
+#define CONNECTED_BOARD SWATCH
 #define CONNECTED_VERSION_MAJOR 12
 #define CONNECTED_VERSION_MINOR 3 // 0 based; i.e. "A" is 0
 
@@ -506,8 +506,7 @@ static const int fpcTouchThreshold = 34600; // needs tuning
   };
 #endif
 
-#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
-  // NOTE: this is the reversed swatch for testing without the tail PCB
+#if CONNECTED_BOARD == SWATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
   static const Channel rows[] = {
     {0, 5, ANODE}, // CH12
     {3, 1, ANODE}, // CH31
@@ -556,7 +555,8 @@ static const int fpcTouchThreshold = 34600; // needs tuning
   };
 #endif
 
-#if CONNECTED_BOARD == SWATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
+#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
+// NOTE: this is the reversed swatch for testing with the tail PCB - but it is untested
   static const Channel rows[] = {
     {2, 7, ANODE}, // CH27
     {0, 4, ANODE}, // CH08

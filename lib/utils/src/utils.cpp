@@ -65,9 +65,11 @@ void setupUtils() {
   statusEventGroup = xEventGroupCreate();
   statusTimerRepeat = true;
 
+  #if VERSION_IS_AT_LEAST(12, 3)
   watchdogPetTimer = timerBegin(2, CPU_CLK_FREQ / 1000000, true);
   timerAttachInterrupt(watchdogPetTimer, &petWatchDog, true);
   statusEventGroup = xEventGroupCreate();
+  #endif // VERSION_IS_AT_LEAST(12, 3)
 
   #ifdef AUTO_LIGHT_SLEEP
     // from: https://community.platformio.org/t/esp32-auto-light-sleep-arduino-idf/13676/4 
@@ -229,6 +231,27 @@ void blink(int qty, int duration, uint32_t color) {
   #endif // VERSION_IS_AT_LEAST(12, 1)
 }
 
+// ------------------ v12d+ Functions ------------------
+#if VERSION_IS_AT_LEAST(12, 3)
+
+void setWatchDog(bool isEnabled) {
+  if(isEnabled) {
+    digitalWrite(WD_EN_PIN, LOW); // enables the chip and starts the timer
+    timerAlarmWrite(watchdogPetTimer, WATCHDOG_PET_INTERVAL * 1000, true);
+    timerAlarmEnable(watchdogPetTimer);
+    DPRINTLN("set watchdog");
+  }
+  else digitalWrite(WD_EN_PIN, HIGH); // resets the timer and disables the chip
+}
+
+void petWatchDog() {
+  digitalWrite(WDI_PIN, HIGH); // resets the timer; another timer period starts as long as WD_EN_PIN is low
+  delayMicroseconds(2); // min WDI pulse width for STWD100YNX is 1us
+  digitalWrite(WDI_PIN, LOW);
+}
+
+#endif // VERSION_IS_AT_LEAST(12, 3)
+
 // ------------------ v12c+ Functions ------------------
 
 #if VERSION_IS_AT_LEAST(12, 2)
@@ -292,24 +315,6 @@ void updateBatteryPercent() {
 }
 
 #endif // VERSION_IS_AT_LEAST(12, 2)
-
-// ------------------ Watchdog Timer Functions ------------------
-
-void setWatchDog(bool isEnabled) {
-  if(isEnabled) {
-    digitalWrite(WD_EN_PIN, LOW); // enables the chip and starts the timer
-    timerAlarmWrite(watchdogPetTimer, WATCHDOG_PET_INTERVAL * 1000, true);
-    timerAlarmEnable(watchdogPetTimer);
-    DPRINTLN("set watchdog");
-  }
-  else digitalWrite(WD_EN_PIN, HIGH); // resets the timer and disables the chip
-}
-
-void petWatchDog() {
-  digitalWrite(WDI_PIN, HIGH); // resets the timer; another timer period starts as long as WD_EN_PIN is low
-  delayMicroseconds(2); // min WDI pulse width for STWD100YNX is 1us
-  digitalWrite(WDI_PIN, LOW);
-}
 
 // ------------------ v12b+ Functions ------------------
 

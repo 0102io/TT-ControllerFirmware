@@ -91,7 +91,9 @@ void setup() {
 
   statusUpdateFreq = DEFAULT_TRANSMISSION_FREQUENCY;
 
-  setWatchDog(true);
+  #if VERSION_IS_AT_LEAST(12,3)
+    setWatchDog(true);
+  #endif // VERSION_IS_AT_LEAST(12,3)
 
   // Blink out to indicate board is ready to go
   blink(2, 200, HEX_GREEN);
