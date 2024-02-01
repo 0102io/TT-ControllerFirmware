@@ -111,6 +111,8 @@ CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
 #define ANODE 1 // 1 = HS fet enabled, LS fet disabled on h bridge driver
 #define CATHODE 0 // 0 = LS fet enabled, HS fet disabled on h bridge driver
 
+#define MAX_INACTIVITY_MINUTES 10 // go to sleep after this many minutes
+
 // Map the rows/columns (generalized as channels) to HBDriver outputs and set them as either rows or columns
 struct Channel {
   uint8_t parent; // 0 to NUM_DRIVERS

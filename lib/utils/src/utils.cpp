@@ -11,10 +11,12 @@
 #endif //AUTO_LIGHT_SLEEP
 #include "esp_system.h"
 #include <Wire.h>
+#include "esp_sleep.h"
 
 hw_timer_t * tapTimer = NULL; // used for tap offDuration timing
 hw_timer_t * statusTimer = NULL; // used for sending the status messages to central
 hw_timer_t * watchdogPetTimer = NULL; // used to "pet" the watchdog (resets the timer but doesn't disable it)
+hw_timer_t * inactivityTimer = NULL; // used to go into deep sleep if we aren't connected to bluetooth and are idle for a while
 
 bool statusTimerRepeat; // causes the status function to rearm the status timer
 bool hbDisbaledEvent = false;
@@ -70,6 +72,9 @@ void setupUtils() {
   timerAttachInterrupt(watchdogPetTimer, &petWatchDog, true);
   statusEventGroup = xEventGroupCreate();
   #endif // VERSION_IS_AT_LEAST(12, 3)
+
+  inactivityTimer = timerBegin(3, CPU_CLK_FREQ / 1000000, true);
+  timerAttachInterrupt(inactivityTimer, &deepSleep, true);
 
   #ifdef AUTO_LIGHT_SLEEP
     // from: https://community.platformio.org/t/esp32-auto-light-sleep-arduino-idf/13676/4 
@@ -187,6 +192,8 @@ void setupUtils() {
     // digitalWrite(CFG3, LOW);
     // digitalWrite(INDICATOR_9V, HIGH);
   #endif
+  esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(USER_BUTTON), LOW);
+  setInactivityTimer(true);
 }
 
 // wrapper for xTaskCreate
@@ -229,6 +236,22 @@ void blink(int qty, int duration, uint32_t color) {
       delay(duration);
     }
   #endif // VERSION_IS_AT_LEAST(12, 1)
+}
+
+void setInactivityTimer(bool isEnabled) {
+  if(isEnabled) {
+    timerAlarmWrite(inactivityTimer, MAX_INACTIVITY_MINUTES * 60 * 1000000, false);
+    timerAlarmEnable(inactivityTimer);
+    DPRINTLN("enabled inactivity timer");
+  }
+  else {
+    timerAlarmDisable(inactivityTimer);
+    DPRINTLN("disabled inactivity timer");
+  }
+}
+
+void deepSleep() {
+  esp_deep_sleep_start();
 }
 
 // ------------------ v12d+ Functions ------------------

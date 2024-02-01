@@ -73,6 +73,8 @@ void setStatusTimer(uint64_t durationMS);
 void receiveBatteryMessage(int numBytes);
 void setWatchDog(bool isEnabled);
 void petWatchDog();
+void setInactivityTimer(bool isEnabled);
+void deepSleep();
 
 extern bool statusTimerRepeat; // determines whether statusUpdates are sent continuously or only upon message reception/completion
 

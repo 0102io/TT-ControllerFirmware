@@ -27,6 +27,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 
     void onConnect(BLEServer* pServer) {
       centralConnected = true;
+      setInactivityTimer(false); // disable the inactivity timer so we don't go into deep sleep
       blink(2, 200, HEX_BLUE);
     };
 
@@ -35,6 +36,7 @@ class ServerCallbacks: public BLEServerCallbacks {
       std::vector<uint8_t> cancelMsg = {TAP_OUT, NO_TAPOUT_ID};
       tapHandler->receiveTapOut(cancelMsg);
       BLEDevice::startAdvertising();
+      setInactivityTimer(true);
     }
 };
 
