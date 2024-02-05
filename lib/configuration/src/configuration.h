@@ -121,8 +121,8 @@ struct Channel {
 };
 
 // tap parameter initial and limit values
-static const unsigned long onDur_init = 30; // hundreds of microseconds (tenths of a millisecond)
-static const unsigned long onDur_max = 30;
+static const unsigned long onDur_init = 300; // tens of microseconds (hundreds of a millisecond)
+static const unsigned long onDur_max = 300;
 static const unsigned long offDur_init = 1000; // tenths of a ms
 
 // stress test vector

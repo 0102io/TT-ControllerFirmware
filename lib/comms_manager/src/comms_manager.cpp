@@ -88,6 +88,8 @@ void mainCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
           deviceInfo[11] = version[5];
           deviceInfo[12] = version[6];
           deviceInfo[13] = version[7];
+          deviceInfo[14] = (uint8_t)(onDur_max >> 8);
+          deviceInfo[15] = (uint8_t)(onDur_max);
           notifyCentral(DEVICE_INFO, deviceInfo);
           break;
         case UPDATE_STATUS_FREQUENCY:

@@ -26,7 +26,7 @@ volatile bool otaProceed = false;
 uint8_t statusUpdateFreq;
 
 std::vector<uint8_t> macAddress(6);
-std::vector<uint8_t> deviceInfo(14);
+std::vector<uint8_t> deviceInfo(16);
 
 EventGroupHandle_t tapEventGroup;
 EventGroupHandle_t statusEventGroup;

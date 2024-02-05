@@ -6,8 +6,7 @@
 
 TapHandler::TapHandler() {
     lastOnDur = onDur_init;
-    lastOffDurM = (uint8_t)(offDur_init >> 8);
-    lastOffDurL = (uint8_t)offDur_init;
+    lastOffDur = (uint16_t)offDur_init;
 }
 
 void TapHandler::setupTapHandler() {
@@ -110,9 +109,8 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   // temp variables for checking if the received parameters are in bounds
   uint8_t r;
   uint8_t c;
-  uint8_t on;
-  uint8_t offM;
-  uint8_t offL;
+  uint16_t on;
+  uint16_t off;
 
   // read each row and col into tap arrays
   int len = (int) data.size();
@@ -123,12 +121,11 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   for (i = 0; i < len; i+= 2) {
     if (data[i] & 0x80) { // 1 as the most significant bit in the row index means we should expect to read settings
       // this block will contain row, col, onDur, offDur
-      if (i + 4 < len) {
+      if (i + 5 < len) {
         r = (data[i] & 0x7F); // get rid of the settings indicator bit
         c = data[i+1];
-        on = data[i+2];
-        offM = data[i+3];
-        offL = data[i+4];
+        on = (data[i+2] << 8) | data[i+3];
+        off = (data[i+4] << 8) | data[i+5];
 
         // check the parameters to make sure they're in bounds
         if (r > numRows - 1) {
@@ -152,16 +149,15 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         // no need to check offDur, any 16 bit value is valid
         
 
-        if (!tapQ.isFull()) tapQ.push(r, c, on, offM, offL);
+        if (!tapQ.isFull()) tapQ.push(r, c, on, off);
         else {
           firstRejectedIndex = i;
           ARGPRINTLN("Queue full. Index of first rejected tap: ", i);
           return;
         }
-        lastOnDur = data[i+2];
-        lastOffDurM = data[i+3];
-        lastOffDurL = data[i+4];
-        i+=3; // increment past the extra settings
+        lastOnDur = on;
+        lastOffDur = off;
+        i+=4; // increment past the extra settings
       }
       else {
         // message size is incorrect; clear the queue since the whole message is likely not formatted according to protocol
@@ -189,7 +185,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         ARGPRINTLN("Error: col index OOB. Index: ", i + 1);
       }
 
-      if (!tapQ.isFull()) tapQ.push(r, c, lastOnDur, lastOffDurM, lastOffDurL);
+      if (!tapQ.isFull()) tapQ.push(r, c, lastOnDur, lastOffDur);
       else {
         firstRejectedIndex = i;
         ARGPRINTLN("Queue full. Index of first rejected tap: ", i);
@@ -300,13 +296,13 @@ This is currently set up to accomodate charlieplexing, where every output can be
 */
 void TapHandler::tap() {
   disableTapTimer();
-  std::array<uint8_t, 5> currentTap = tapQ.pop();
+  std::array<uint8_t, 6> currentTap = tapQ.pop();
 
   // load settings for this tap
   uint8_t r = currentTap[0];
   uint8_t c = currentTap[1];
-  unsigned long onDuration = currentTap[2];
-  unsigned long offDuration = (currentTap[3] << 8) | currentTap[4];
+  unsigned long onDuration = (currentTap[2] << 8) | currentTap[3];
+  unsigned long offDuration = (currentTap[4] << 8) | currentTap[5];
 
   // temp values
   uint8_t rowParentID;
@@ -337,22 +333,23 @@ void TapHandler::tap() {
     #endif
 
     #ifdef OVERTAP_PROTECTION
-      unsigned long interval = (millis() - tapperMonitor[r][c].lastMillis) * 10; // tenths of a millisecond
+      // this section needs to be tested again
+      unsigned long interval = (millis() - tapperMonitor[r][c].lastMillis) * 10; // why is this multiplied by 10?
       int lastHeat = tapperMonitor[r][c].heat;
 
-      unsigned long onDurReduction = onDuration * lastHeat / (interval * ATTENUATION_CONSTANT); 
+      unsigned long onDurReduction = (onDuration / 10) * lastHeat / (interval * ATTENUATION_CONSTANT); 
       if (onDurReduction != 0) {
         overtappedRowIndex = r;
         overtappedColIndex = c;
       }
       unsigned long attenuatedOnDur;
-      if (onDurReduction < onDuration) attenuatedOnDur = onDuration - onDurReduction; // since we're doing unsigned integer math we have to make sure it doesn't go negative
+      if (onDurReduction < (onDuration / 10)) attenuatedOnDur = (onDuration / 10) - onDurReduction; // since we're doing unsigned integer math we have to make sure it doesn't go negative
       else attenuatedOnDur = 0;
       
-      unsigned long newOnDuration = (attenuatedOnDur < onDuration) ? attenuatedOnDur : onDuration; // don't tap longer than intended
-      unsigned long balance = (newOnDuration < onDuration) ? onDuration - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
+      unsigned long newOnDuration = (attenuatedOnDur < (onDuration / 10)) ? attenuatedOnDur : (onDuration / 10); // don't tap longer than intended
+      unsigned long balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
       
-      int newHeat = onDuration * ON_DURATION_MULTIPLIER - interval + lastHeat;
+      int newHeat = (onDuration / 10) * ON_DURATION_MULTIPLIER - interval + lastHeat;
       
       tapperMonitor[r][c].heat = (newHeat > 0) ? newHeat : 0; // don't let heat be negative
       tapperMonitor[r][c].lastMillis = millis();
@@ -366,7 +363,7 @@ void TapHandler::tap() {
     driver[colParentID]->setOutputCNF(colOutputPin, colPolarity);
     writeOutput(rowParentID, rowOutputPin);
     writeOutput(colParentID, colOutputPin);
-    delayMicroseconds(onDuration*100);
+    delayMicroseconds(onDuration*10);
     driver[rowParentID]->clrOutputVal(rowOutputPin);
     driver[colParentID]->clrOutputVal(colOutputPin);
     writeOutput(rowParentID, rowOutputPin);
@@ -381,11 +378,11 @@ void TapHandler::tap() {
       #endif
     #endif
     #ifdef OVERTAP_PROTECTION
-      delayMicroseconds(balance*100);
+      delayMicroseconds(balance*10);
     #endif //OVERTAP_PROTECTION
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
-    delayMicroseconds(onDuration*100);
+    delayMicroseconds(onDuration*10);
   }
   setTapTimer(offDuration);
   if (halfFullRising && (tapQ.getSize() < (MAX_QUEUE_SIZE / 2))) {
@@ -456,7 +453,7 @@ uint16_t TapQueue::getSize() {
 }
 
 // adds a new tap index + settings to the back of the queue (FIFO)
-bool TapQueue::push(uint8_t r, uint8_t c, uint8_t on, uint8_t offM, uint8_t offL) {
+bool TapQueue::push(uint8_t r, uint8_t c, uint16_t on, uint16_t off) {
   if (isFull()) {
       return false;
   }
@@ -464,25 +461,25 @@ bool TapQueue::push(uint8_t r, uint8_t c, uint8_t on, uint8_t offM, uint8_t offL
   row[rear] = r;
   col[rear] = c;
   onDur[rear] = on;
-  offDurMSB[rear] = offM;
-  offDurLSB[rear] = offL;
+  offDur[rear] = off;
   rear = (rear + 1) % MAX_QUEUE_SIZE; // wrap around if at the end
   ++size;
   return true;
 }
 
 // removes the frontmost tap + settings from the queue (FIFO)
-std::array<uint8_t, 5> TapQueue::pop() {
-  std::array<uint8_t, 5> arr = {0, 0, 0, 0, 0}; // we should never have to return this, but just in case we do, all of the values are in bounds so we won't crash
+std::array<uint8_t, 6> TapQueue::pop() {
+  std::array<uint8_t, 6> arr = {0, 0, 0, 0, 0, 0}; // we should never have to return this, but just in case we do, all of the values are in bounds so we won't crash
   if (isEmpty()) {
       return arr;
   }
 
   arr[0] = row[front];
   arr[1] = col[front];
-  arr[2] = onDur[front];
-  arr[3] = offDurMSB[front];
-  arr[4] = offDurLSB[front];
+  arr[2] = (uint8_t)(onDur[front] >> 8);
+  arr[3] = (uint8_t)onDur[front];
+  arr[4] = (uint8_t)(offDur[front] >> 8);
+  arr[5] = (uint8_t)offDur[front];
   front = (front + 1) % MAX_QUEUE_SIZE; // wrap around if at the end
   --size;
 

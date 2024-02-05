@@ -31,9 +31,8 @@ private:
     uint16_t rear;
     std::array<uint8_t, MAX_QUEUE_SIZE> row;
     std::array<uint8_t, MAX_QUEUE_SIZE> col;
-    std::array<uint8_t, MAX_QUEUE_SIZE> onDur;
-    std::array<uint8_t, MAX_QUEUE_SIZE> offDurMSB;
-    std::array<uint8_t, MAX_QUEUE_SIZE> offDurLSB;
+    std::array<uint16_t, MAX_QUEUE_SIZE> onDur;
+    std::array<uint16_t, MAX_QUEUE_SIZE> offDur;
 
 public:
     TapQueue() : size(0), front(0), rear(0) {}
@@ -41,8 +40,8 @@ public:
     bool isEmpty();
     uint16_t headroom();
     uint16_t getSize();
-    bool push(uint8_t r, uint8_t c, uint8_t on, uint8_t offM, uint8_t offL);
-    std::array<uint8_t, 5> pop();
+    bool push(uint8_t r, uint8_t c, uint16_t on, uint16_t off);
+    std::array<uint8_t, 6> pop();
     void clear();
 };
 
@@ -66,9 +65,8 @@ public:
 private:
     const uint32_t clockSpeed = 2000000;
 
-    uint8_t lastOnDur;
-    uint8_t lastOffDurM; // most significant byte of 16 bit offDuration
-    uint8_t lastOffDurL; // least significant byte of 16 bit offDuration
+    uint16_t lastOnDur;
+    uint16_t lastOffDur;
 
     uint16_t firstRejectedIndex; // position of the first tap not added to the queue in the last message. If all were added, this will be the nth+1 index.
     uint8_t warningCode;

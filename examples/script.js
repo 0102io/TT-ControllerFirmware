@@ -329,7 +329,7 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
     let len = 2; // 2 bytes for message type and message ID
     for (let i = 0; i < 3; i++) {
         const qty = parseInt(document.getElementById(`qty${i}`).value);
-        len += qty * 2 + 3; // 2 bytes for each additional 'row' and 'col', 3 bytes for 'onDur', 'offDurMSB', and 'offDurLSB' of the first element
+        len += qty * 2 + 4; // 2 bytes for each additional 'row' and 'col', 4 bytes for 'onDurMSB', onDurLSB, 'offDurMSB', and 'offDurLSB' of the first element
     }
 
     const arr = new Uint8Array(len);
@@ -346,13 +346,16 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
         const onDur = parseInt(document.getElementById(`onDur${i}`).value);
         const offDur = parseInt(document.getElementById(`offDur${i}`).value);
 
+        const onDurMSB = (onDur >> 8) & 0xFF;
+        const onDurLSB = onDur & 0xFF;
         const offDurMSB = (offDur >> 8) & 0xFF;
         const offDurLSB = offDur & 0xFF;
 
         // Write the first element with the settings
         arr[offset++] = row | (1 << 7); // to indicate we're sending settings, the first bit of the row byte needs to be 1
         arr[offset++] = col;
-        arr[offset++] = onDur;
+        arr[offset++] = onDurMSB;
+        arr[offset++] = onDurLSB;
         arr[offset++] = offDurMSB;
         arr[offset++] = offDurLSB;
 
