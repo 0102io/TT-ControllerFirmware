@@ -1,7 +1,8 @@
-// Define the UUIDs for the service and characteristic
+// Define the UUIDs for the service and characteristics
 const SERVICE_UUID = "4fafc201-1fb5-459e-8fcc-c5c9c331914b";
-const CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8";
-const OTA_CHARACTERISTIC_UUID = "c8659211-af91-4ad3-a995-a58d6fd26145";
+const RX_CHARACTERISTIC_UUID = "beb5483e-36e1-4688-b7f5-ea07361b26a8"; // central-->controller
+const TX_CHARACTERISTIC_UUID = "d036e381-fd38-4376-801f-f5d90ba2ca64"; //controller -->central
+const OTA_RX_CHARACTERISTIC_UUID = "c8659211-af91-4ad3-a995-a58d6fd26145";
 
 // Define message types
 const SentMessageType = {
@@ -21,7 +22,8 @@ const ReceivedMessageType = {
 
 let bleDevice = null;
 let bleServer = null;
-let bleCharacteristic = null;
+let rxCharacteristic = null;
+let txCharacteristic = null;
 let otaCharacteristic = null;
 
 // Function to connect to the BLE server
@@ -33,12 +35,13 @@ async function connect() {
 
     bleServer = await bleDevice.gatt.connect();
     const service = await bleServer.getPrimaryService(SERVICE_UUID);
-    bleCharacteristic = await service.getCharacteristic(CHARACTERISTIC_UUID);
-    otaCharacteristic = await service.getCharacteristic(OTA_CHARACTERISTIC_UUID);
+    rxCharacteristic = await service.getCharacteristic(RX_CHARACTERISTIC_UUID);
+    txCharacteristic = await service.getCharacteristic(TX_CHARACTERISTIC_UUID);
+    otaCharacteristic = await service.getCharacteristic(OTA_RX_CHARACTERISTIC_UUID);
 
     // Enable notifications
-    await bleCharacteristic.startNotifications();
-    bleCharacteristic.addEventListener("characteristicvaluechanged", handleNotifications);
+    await txCharacteristic.startNotifications();
+    txCharacteristic.addEventListener("characteristicvaluechanged", handleNotifications);
     toggleConnectButton(true);
     bleDevice.addEventListener('gattserverdisconnected', () => {
         console.log('Device disconnected');
@@ -279,7 +282,7 @@ function handleNotifications(event) {
 
 async function sendMessage(buffer, messageType) {
     try {
-        await bleCharacteristic.writeValue(buffer);
+        await rxCharacteristic.writeValue(buffer);
         const sentData = Array.from(new Uint8Array(buffer));
         const sentDataString = sentData.map(byte => byte.toString(16).padStart(2, '0')).join(' ');
         console.log(`Sent message: ${messageType}, Data: [${sentDataString}]`);

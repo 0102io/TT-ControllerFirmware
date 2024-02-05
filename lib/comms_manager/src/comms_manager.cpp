@@ -5,9 +5,11 @@ extern "C" {
 }
 
 BLEServer *pServer = NULL; // BLE server pointer
-BLECharacteristic * pTxCharacteristic = NULL; // pointer to characteristic used for most central<-->peripheral communication
+BLECharacteristic * pRxCharacteristic = NULL; // pointer to characteristic used for non-OTA central-->controller communication
 bool centralConnected = false;
 uint8_t txValue = 0;
+
+BLECharacteristic * pTxCharacteristic = NULL; // pointer to characteristic used for non-OTA controller-->central communication
 
 BLECharacteristic *pOtaCharacteristic = NULL; // pointer to characteristic used for over the air (OTA) firmware uploads
 esp_ota_handle_t otaHandle = 0;
@@ -44,7 +46,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 Method that is called when we receive a message from central. Depending on the message type (first element in the message),
 we call the relevant TapHandler or utils function.
 */
-void mainCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
+void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
   std::string rxStringValue = pCharacteristic->getValue();
 
     // Convert std::string to std::vector<uint8_t>
@@ -173,22 +175,28 @@ void setupBLE(TapHandler* tapHandler) {
   BLEDevice::setMTU(BLE_MTU);
   pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
-  pTxCharacteristic = pService->createCharacteristic(
+  pRxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_RX,
-                      BLECharacteristic::PROPERTY_READ |
-                      BLECharacteristic::PROPERTY_WRITE | 
+                      // BLECharacteristic::PROPERTY_READ |
+                      BLECharacteristic::PROPERTY_WRITE // | 
+                      // BLECharacteristic::PROPERTY_NOTIFY
+                      );
+  pRxCharacteristic->addDescriptor(new BLE2902());
+  pRxCharacteristic->setCallbacks(new fromCentralCallbacks(tapHandler));
+  pServer->setCallbacks(new ServerCallbacks(tapHandler));
+
+  pTxCharacteristic = pService->createCharacteristic(
+                      CHARACTERISTIC_UUID_TX,
                       BLECharacteristic::PROPERTY_NOTIFY
                       );
   pTxCharacteristic->addDescriptor(new BLE2902());
-
-  pTxCharacteristic->setCallbacks(new mainCallbacks(tapHandler));
-  pServer->setCallbacks(new ServerCallbacks(tapHandler));
+  // pTxCharacteristic->setCallbacks(new toCentralCallbacks()); // don't have anything for this right now
 
   // Add OTA characteristic
   pOtaCharacteristic = pService->createCharacteristic(
-                         CHARACTERISTIC_UUID_FW,
-                         BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_WRITE
-                       );
+                      CHARACTERISTIC_UUID_FW,
+                      BLECharacteristic::PROPERTY_NOTIFY | BLECharacteristic::PROPERTY_WRITE
+                      );
 
   pOtaCharacteristic->addDescriptor(new BLE2902());
   pOtaCharacteristic->setCallbacks(new otaCallbacks());
@@ -214,7 +222,7 @@ void notifyCentral(uint8_t type, const std::vector<uint8_t>& data) {
   for (int i = 1; i < sz + 1; i++) {
     txValue[i] = data[i-1];
   }
-  // Set the value of the BLE Characteristic
+  // use the TX characteristic
   pTxCharacteristic->setValue(txValue, sz+1);
   pTxCharacteristic->notify(); // Send the data over BLE
 }

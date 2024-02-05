@@ -9,13 +9,18 @@
 #include <esp_ota_ops.h>
 
 // UUIDs for BLE service and characteristic
-#define SERVICE_UUID           "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+#define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
 #define DEVICE_NAME "TAPPY CONTROLLER"
-
-// UUID for OTA
-#define CHARACTERISTIC_UUID_FW  "c8659211-af91-4ad3-a995-a58d6fd26145"
 #define FULL_PACKET 512
+
+// Characteristic for central --> controller communication
+#define CHARACTERISTIC_UUID_RX "beb5483e-36e1-4688-b7f5-ea07361b26a8"
+
+// Characteristic for controller --> central communication
+#define CHARACTERISTIC_UUID_TX "d036e381-fd38-4376-801f-f5d90ba2ca64"
+
+// Characteristic for OTA upload
+#define CHARACTERISTIC_UUID_FW  "c8659211-af91-4ad3-a995-a58d6fd26145"
 #define OTA_BTN_TIMEOUT 10000 // time to wait for a confirmation interact button press when OTA upload is initiated, ms
 
 // since we're a peripheral device, these are just preferred values that central can choose to ignore
@@ -27,6 +32,7 @@
 
 // BLE Server and Service
 extern BLEServer *pServer;
+extern BLECharacteristic * pRxCharacteristic;
 extern BLECharacteristic * pTxCharacteristic;
 extern bool centralConnected;
 extern uint8_t txValue;
@@ -35,9 +41,9 @@ extern BLECharacteristic *pOtaCharacteristic;
 extern esp_ota_handle_t otaHandle;
 extern bool updateFlag;
 
-class mainCallbacks: public BLECharacteristicCallbacks {
+class fromCentralCallbacks: public BLECharacteristicCallbacks {
     public:
-        mainCallbacks(TapHandler* tapHandler) : tapHandler(tapHandler) {}
+        fromCentralCallbacks(TapHandler* tapHandler) : tapHandler(tapHandler) {}
         void onWrite(BLECharacteristic *pCharacteristic);
 
     private:
