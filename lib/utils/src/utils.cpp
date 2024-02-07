@@ -118,7 +118,7 @@ void setupUtils() {
     attachInterrupt(digitalPinToInterrupt(ALRT_PIN), fuelGaugeAlertISR, FALLING);
     pinMode(QSTRT_PIN, OUTPUT);
     digitalWrite(QSTRT_PIN, LOW);
-    setupBattery();
+    setupFuelGauge();
   #elif VERSION_IS(12, 3)
     pinMode(CURRENT_SENSE_PIN, INPUT);
     digitalWrite(LED, HIGH);
@@ -305,10 +305,16 @@ which is the default setting (0x971C) plus:
 - ATHD = 11111b, which sets the SOC detection threshold to 1%
 */
 void setupFuelGauge() {
-  if (fuelGauge.begin()) DPRINTLN("Fuel gauge found");
+  if (fuelGauge.begin()) {
+    DPRINTLN("Fuel gauge found");
+    batteryDetected = 1;
+  }
   else DPRINTLN("Fuel gauge not found");
   delay(1);
   setFuelGaugeConfig();
+  delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate
+  batteryPercent = (uint8_t)fuelGauge.cellPercent();
+  ARGPRINTLN("battery percent = ", batteryPercent);
 }
 
 void setFuelGaugeConfig() {
@@ -320,7 +326,7 @@ void setFuelGaugeConfig() {
   Wire.write(lsb); // Write low byte
   uint8_t err = Wire.endTransmission();
   delay(1);
-  ARGPRINTLN("I2C error on fuel gauge bus:", err)
+  if (err != 0) ARGPRINTLN("I2C error on fuel gauge bus:", err);
 }
 
 void fuelGaugeAlertISR() {
