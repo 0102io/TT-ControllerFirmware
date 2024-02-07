@@ -201,38 +201,23 @@ function handleNotifications(event) {
     switch (receivedType) {
         case ReceivedMessageType.STATUS_UPDATE:
             // note: when comparing to the readme, note that the message type byte has already been taken off here
-            let statusFrequency = additionalData[0];
-            let systemTime = (additionalData[1] << 24) | (additionalData[2] << 16) | (additionalData[3] << 8) | additionalData[4];
-            let batteryPercent = additionalData[5];
-            additionalDataString = `Status Frequency: ${statusFrequency}, System Time: ${systemTime}, Battery: ${batteryPercent}%`;
+            let batteryPercent = additionalData[0];
+            additionalDataString = `Battery%: ${batteryPercent}%`;
         
-            
-            let tapHandlerStatus = additionalData.slice(6, 15);
+            let tapHandlerStatus = additionalData.slice(1, 4);
             let tapOutID = tapHandlerStatus[0];
-            let halfFullFalling = tapHandlerStatus[1];
-            let tapQHeadroom = (tapHandlerStatus[2] << 8) | tapHandlerStatus[3];
-            let firstRejectedIndex = (tapHandlerStatus[4] << 8) | tapHandlerStatus[5];
-            let warningCode = tapHandlerStatus[6];
-            let warningValue = (tapHandlerStatus[7] << 8) | tapHandlerStatus[8];
-            additionalDataString += `Tap Out ID: ${tapOutID}, Half Full Falling: ${halfFullFalling}, Tap Queue Headroom: ${tapQHeadroom}, Last Rejected Index: ${firstRejectedIndex}, Warning Code: ${warningCode} `;
+            let tapQHeadroom = (tapHandlerStatus[1] << 8) | tapHandlerStatus[2];
+            additionalDataString += ` Tap Out ID: ${tapOutID}, Tap Queue Headroom: ${tapQHeadroom}`;
 
-            let imuData = additionalData.slice(15, 39);
+            let imuData = additionalData.slice(4, 30);
             let accelX = (imuData[0] << 24 | imuData[1] << 16 | imuData[2] << 8 | imuData[3]) / 1000;
             let accelY = (imuData[4] << 24 | imuData[5] << 16 | imuData[6] << 8 | imuData[7]) / 1000;
             let accelZ = (imuData[8] << 24 | imuData[9] << 16 | imuData[10] << 8 | imuData[11]) / 1000;
             let gyroX = (imuData[12] << 24 | imuData[13] << 16 | imuData[14] << 8 | imuData[15]) / 1000;
             let gyroY = (imuData[16] << 24 | imuData[17] << 16 | imuData[18] << 8 | imuData[19]) / 1000;
             let gyroZ = (imuData[20] << 24 | imuData[21] << 16 | imuData[22] << 8 | imuData[23]) / 1000;
-            additionalDataString += `Accel X: ${accelX} Y: ${accelY} Z: ${accelZ}, Gyro X: ${gyroX} Y: ${gyroY} Z: ${gyroZ} `;
-
-            let extraData = additionalData.slice(39)
-            let overtappedRowIndex = extraData[0];
-            let overtappedColIndex = extraData[1];
-            additionalDataString += `Overtapped Row: ${overtappedRowIndex} Col: ${overtappedColIndex} `;
-            let batteryConnected = extraData[2];
-            let temperature = (extraData[3] << 8 | extraData[4]) / 10;
-            additionalDataString += `Battery Connected: ${batteryConnected} Temperature: ${temperature} `;
-
+            let temperature = (imuData[24] << 8 | imuData[25]) / 10;
+            additionalDataString += ` Accel X: ${accelX} Y: ${accelY} Z: ${accelZ}, Gyro X: ${gyroX} Y: ${gyroY} Z: ${gyroZ}, Temperature:  ${temperature}`;
             break;
         case ReceivedMessageType.TAPOUT_COMPLETE:
             additionalDataString = `Message ID: ${additionalData[0]}`;

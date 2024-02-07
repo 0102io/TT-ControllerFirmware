@@ -31,8 +31,7 @@ std::vector<uint8_t> deviceInfo(16);
 EventGroupHandle_t tapEventGroup;
 EventGroupHandle_t statusEventGroup;
 
-volatile uint8_t batteryPercent = 0;
-volatile uint8_t batteryDetected = 0;
+uint8_t batteryPercent = 0;
 
 Adafruit_MAX17048 fuelGauge;
 bool socChanged = false;
@@ -307,7 +306,6 @@ which is the default setting (0x971C) plus:
 void setupFuelGauge() {
   if (fuelGauge.begin()) {
     DPRINTLN("Fuel gauge found");
-    batteryDetected = 1;
   }
   else DPRINTLN("Fuel gauge not found");
   delay(1);
@@ -395,7 +393,6 @@ void receiveBatteryMessage(int numBytes) {
   }
   else DPRINTLN("Error receiving battery message");
   digitalWrite(EXT_PIN, LOW);
-  batteryDetected = 1;
 }
 
 /*
