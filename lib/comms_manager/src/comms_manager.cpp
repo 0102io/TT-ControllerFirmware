@@ -29,6 +29,7 @@ class ServerCallbacks: public BLEServerCallbacks {
 
     void onConnect(BLEServer* pServer) {
       centralConnected = true;
+      BLEDevice::stopAdvertising();
       setInactivityTimer(false); // disable the inactivity timer so we don't go into deep sleep
       blink(2, 200, HEX_BLUE);
     };

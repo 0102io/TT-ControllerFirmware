@@ -326,7 +326,8 @@ void TapHandler::tap() {
     // Set the row and col outputs
     #ifdef DEBUG
       #if VERSION_IS_AT_LEAST(12, 1)
-        analogWrite(LED, 0);
+        analogWrite(LEDB, 0);
+        analogWrite(LEDG, 0);
       #else
         digitalWrite(LED, HIGH);
       #endif
@@ -372,7 +373,8 @@ void TapHandler::tap() {
 
     #ifdef DEBUG
       #if VERSION_IS_AT_LEAST(12, 1)
-        analogWrite(LED, 255);
+        analogWrite(LEDB, 255);
+        analogWrite(LEDG, 255);
       #else
         digitalWrite(LED, LOW);
       #endif
