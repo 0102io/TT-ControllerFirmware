@@ -37,8 +37,22 @@
 #define HEX_CYAN 0x00FFFF
 #define HEX_WHITE 0xFFFFFF
 
-// address on the controller - battery pack I2C bus
+// address on the controller - battery pack I2C bus (pre-v12e)
 #define I2C_ADDR 0x08
+
+// I2C address of I2C devices
+#define ADDR_MAX17048 0x36
+
+// MAX17048 Registers
+#define REG_MAX17048_CONFIG 0x0C
+#define REG_MAX17048_SOC 0x04
+#define REG_MAX17048_VERSION 0x08
+#define REG_MAX17048_ID 0x19
+#define REG_MAX17048_STATUS 0x1A
+#define REG_MAX17048_CMD 0xFE
+
+// MAX17048 bit positions
+#define BIT_CONFIG_ATRT 0x20
 
 #ifdef DEBUG
   #define DPRINT(x) Serial.print(x)
@@ -62,6 +76,10 @@ void hbDisabledISR();
 void IRAM_ATTR interactButtonPress();
 void setupBattery();
 void updateBatteryPercent();
+void receiveAlertSOC();
+void setupFuelGauge();
+void setFuelGaugeConfig();
+void fuelGaugeAlertISR();
 void IRAM_ATTR tapTimerInterrupt();
 void disableTapTimer();
 void setTapTimer(uint64_t durationTenthsMS);

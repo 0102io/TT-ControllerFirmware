@@ -34,7 +34,8 @@ EventGroupHandle_t statusEventGroup;
 volatile uint8_t batteryPercent = 0;
 volatile uint8_t batteryDetected = 0;
 
-// Adafruit_MAX17048 lipo; // used for testing, to talk directly to the fuel gauge.
+Adafruit_MAX17048 fuelGauge;
+bool socChanged = false;
 
 /*
 Set up timers, auto light sleep, input/output pins, etc.
@@ -89,7 +90,36 @@ void setupUtils() {
     else if (err == ESP_ERR_NOT_SUPPORTED) blink(1, 100, HEX_RED);
   #endif //AUTO_LIGHT_SLEEP
 
-  #if VERSION_IS(12, 3)
+  #if VERSION_IS(12, 4)
+    pinMode(CURRENT_SENSE_PIN, INPUT);
+    digitalWrite(LED, HIGH);
+    digitalWrite(LEDG, HIGH);
+    digitalWrite(LEDB, HIGH);
+    pinMode(LED, OUTPUT);
+    pinMode(LEDG, OUTPUT);
+    pinMode(LEDB, OUTPUT);
+    pinMode(USER_BUTTON, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(USER_BUTTON), interactButtonPress, FALLING);
+    pinMode(REG12V_EN_PIN, OUTPUT);
+    #ifdef HBEN_DISABLED_INTERRUPT
+      pinMode(HBEN_INTERRUPT_PIN, INPUT);
+      attachInterrupt(digitalPinToInterrupt(HBEN_INTERRUPT_PIN), hbDisabledISR, FALLING);
+    #endif
+    pinMode(IMU_INT1_PIN, INPUT);
+    pinMode(IMU_INT2_PIN, INPUT);
+    #ifndef REGULATOR_PWR_SAVE
+      digitalWrite(REG12V_EN_PIN, HIGH);
+    #endif
+    pinMode(WD_EN_PIN, OUTPUT);
+    digitalWrite(WD_EN_PIN, HIGH); // active low
+    pinMode(WDI_PIN, OUTPUT);
+    digitalWrite(WDI_PIN, LOW);
+    pinMode(ALRT_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(ALRT_PIN), fuelGaugeAlertISR, FALLING);
+    pinMode(QSTRT_PIN, OUTPUT);
+    digitalWrite(QSTRT_PIN, LOW);
+    setupFuelGauge();
+  #elif VERSION_IS(12, 3)
     pinMode(CURRENT_SENSE_PIN, INPUT);
     digitalWrite(LED, HIGH);
     digitalWrite(LEDG, HIGH);
@@ -253,6 +283,56 @@ void setInactivityTimer(bool isEnabled) {
 void deepSleep() {
   esp_deep_sleep_start();
 }
+// ------------------ v12e+ Functions ------------------
+#if VERSION_IS_AT_LEAST(12, 4)
+#define EXT_PIN 39 // unused pin on this version, but without this define there are errors in the old battery communication functions
+/*
+Callback for receiving alert pin interrupts from the fuel gauge, then reset the alert.
+*/
+void receiveAlertSOC() {
+  delay(1);
+  batteryPercent = (uint8_t)fuelGauge.cellPercent();
+  delay(1);
+  socChanged = false;
+  fuelGauge.clearAlertFlag(MAX1704X_ALERTFLAG_SOC_CHANGE); // clear the alert flag in the status register
+  setFuelGaugeConfig(); // this clears the alert bit in the config register (needed to pull the alert pin high again)
+}
+
+/*
+Connect with the MAX17048, then configure it by setting the config register to 0x975F, 
+which is the default setting (0x971C) plus:
+- ALSC = 1, which allows the SOC alert to pull the ~ALRT pin low when they trigger
+- ATHD = 11111b, which sets the SOC detection threshold to 1%
+*/
+void setupFuelGauge() {
+  if (fuelGauge.begin()) {
+    DPRINTLN("Fuel gauge found");
+    batteryDetected = 1;
+  }
+  else DPRINTLN("Fuel gauge not found");
+  delay(1);
+  setFuelGaugeConfig();
+  delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate
+  batteryPercent = (uint8_t)fuelGauge.cellPercent();
+  ARGPRINTLN("battery percent = ", batteryPercent);
+}
+
+void setFuelGaugeConfig() {
+  uint8_t msb = 0x97;
+  uint8_t lsb = 0x5F;
+  Wire.beginTransmission(ADDR_MAX17048);
+  Wire.write(REG_MAX17048_CONFIG); // CONFIG register address
+  Wire.write(msb); // Write high byte
+  Wire.write(lsb); // Write low byte
+  uint8_t err = Wire.endTransmission();
+  delay(1);
+  if (err != 0) ARGPRINTLN("I2C error on fuel gauge bus:", err);
+}
+
+void fuelGaugeAlertISR() {
+  if (digitalRead(ALRT_PIN) == LOW) socChanged = true;
+}
+#endif // VERSION_IS_AT_LEAST(12, 4)
 
 // ------------------ v12d+ Functions ------------------
 #if VERSION_IS_AT_LEAST(12, 3)

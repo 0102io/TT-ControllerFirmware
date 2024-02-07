@@ -23,7 +23,7 @@
 Enter the type of substrate and version number of the substrate here.
 e.g. v12d swatch = SWATCH, 12, 3
 */
-#define CONNECTED_BOARD SWATCH
+#define CONNECTED_BOARD PALM
 #define CONNECTED_VERSION_MAJOR 12
 #define CONNECTED_VERSION_MINOR 3 // 0 based; i.e. "A" is 0
 
