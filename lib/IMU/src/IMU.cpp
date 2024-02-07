@@ -72,6 +72,7 @@ void IMU::poll()
   float2int32[3] = (int32_t)(gyro.gyro.x * 1000);
   float2int32[4] = (int32_t)(gyro.gyro.y * 1000);
   float2int32[5] = (int32_t)(gyro.gyro.z * 1000);
+  tempInt = temp.temperature * 10;
 
   // break data into bytes
   dataAsBytes[0] = (float2int32[0] >> 24) & 0xFF;
@@ -99,6 +100,8 @@ void IMU::poll()
   dataAsBytes[21] = (float2int32[5] >> 16) & 0xFF;
   dataAsBytes[22] = (float2int32[5] >> 8) & 0xFF;
   dataAsBytes[23] = float2int32[5] & 0xFF;
+  dataAsBytes[24] = (tempInt >> 8) & 0xFF;
+  dataAsBytes[25] = tempInt & 0xFF;
 
   dataPtr = dataAsBytes;
 

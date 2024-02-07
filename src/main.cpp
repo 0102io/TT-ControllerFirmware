@@ -15,7 +15,7 @@ This function runs as a separate task, and executes when the status timer alarm 
 It sends regular updates of system info, tap related info, and IMU data to central. 
 */
 void statusUpdate(void * parameter) {
-  std::vector<uint8_t> statusArray(42);
+  std::vector<uint8_t> statusArray(44);
 
   for (;;) {
     xEventGroupWaitBits(statusEventGroup, EVENT_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
@@ -71,6 +71,8 @@ void statusUpdate(void * parameter) {
       statusArray[36] = imu.dataPtr[21]; // gyroZ
       statusArray[37] = imu.dataPtr[22]; // gyroZ
       statusArray[38] = imu.dataPtr[23]; // gyroZ LSB
+      statusArray[42] = imu.dataPtr[24]; // temperature * 10 (MSB)
+      statusArray[43] = imu.dataPtr[25]; // temperature * 10 (LSB)
       notifyCentral(STATUS_UPDATE, statusArray);
     }
     unsigned long interval = 1000 / statusUpdateFreq;
