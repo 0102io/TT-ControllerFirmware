@@ -101,10 +101,6 @@ void setupUtils() {
     pinMode(USER_BUTTON, INPUT_PULLUP);
     attachInterrupt(digitalPinToInterrupt(USER_BUTTON), interactButtonPress, FALLING);
     pinMode(REG12V_EN_PIN, OUTPUT);
-    #ifdef HBEN_DISABLED_INTERRUPT
-      pinMode(HBEN_INTERRUPT_PIN, INPUT);
-      attachInterrupt(digitalPinToInterrupt(HBEN_INTERRUPT_PIN), hbDisabledISR, FALLING);
-    #endif
     pinMode(IMU_INT1_PIN, INPUT);
     pinMode(IMU_INT2_PIN, INPUT);
     #ifndef REGULATOR_PWR_SAVE
@@ -119,6 +115,10 @@ void setupUtils() {
     pinMode(QSTRT_PIN, OUTPUT);
     digitalWrite(QSTRT_PIN, LOW);
     setupFuelGauge();
+    #ifdef HBEN_DISABLED_INTERRUPT
+      pinMode(HBEN_INTERRUPT_PIN, INPUT);
+      attachInterrupt(digitalPinToInterrupt(HBEN_INTERRUPT_PIN), hbDisabledISR, FALLING);
+    #endif
   #elif VERSION_IS(12, 3)
     pinMode(CURRENT_SENSE_PIN, INPUT);
     digitalWrite(LED, HIGH);
