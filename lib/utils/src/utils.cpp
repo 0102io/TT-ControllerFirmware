@@ -33,6 +33,7 @@ EventGroupHandle_t statusEventGroup;
 
 volatile uint8_t batteryPercent = 0;
 volatile uint8_t batteryDetected = 0;
+uint16_t imuTemperature;
 
 Adafruit_MAX17048 fuelGauge;
 bool socChanged = false;

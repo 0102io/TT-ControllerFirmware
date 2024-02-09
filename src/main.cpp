@@ -114,6 +114,7 @@ void setup() {
 void loop() {
   xEventGroupWaitBits(tapEventGroup, EVENT_BIT0, pdTRUE, pdFALSE, portMAX_DELAY);
   if (!tapHandler.isDoneTapping()) {
+    imuTemperature = imu.tempInt;
     tapHandler.tap();
   }
   else {
