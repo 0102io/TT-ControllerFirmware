@@ -360,19 +360,19 @@ void TapHandler::tap() {
     #endif //OVERTAP_PROTECTION
 
     // attenuate the tap if the IMU is hot (which means the board is hot)
-    if (imuTemperature > 64) {
+    if (imuTemperature > 62) {
       balance += onDuration * 7 / 8;
       onDuration = onDuration / 8;
     }
-    else if (imuTemperature > 60) {
+    else if (imuTemperature >= 58) {
       balance += onDuration * 3 / 4;
       onDuration = onDuration / 4;
     }
-    else if (imuTemperature > 56) {
+    else if (imuTemperature >= 54) {
       balance += onDuration / 2;
       onDuration = onDuration / 2;
     }
-    else if (imuTemperature > 52) {
+    else if (imuTemperature >= 50) {
       balance += onDuration / 4;
       onDuration = onDuration * 3 / 4;
     }

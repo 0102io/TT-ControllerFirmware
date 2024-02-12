@@ -114,7 +114,7 @@ void setup() {
 void loop() {
   xEventGroupWaitBits(tapEventGroup, EVENT_BIT0, pdTRUE, pdFALSE, portMAX_DELAY);
   if (!tapHandler.isDoneTapping()) {
-    imuTemperature = imu.tempInt;
+    imuTemperature = imu.tempInt / 10; // update the imu temp so we can attenuate the tap if we're running hot
     tapHandler.tap();
   }
   else {
