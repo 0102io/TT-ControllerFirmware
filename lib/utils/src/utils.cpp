@@ -428,7 +428,7 @@ void updateBatteryPercent() {
 TOUCH_PIN is connected to a trace in the flex tail / substrate PCBs, and this 
 function can be used to detect whether that trace is close to the user's skin. This isn't 
 used for anything right now, but it could be useful for determining if the substrate is
-connected, or possibly what type of substrate it is (e.g. v12d Swatch vs v12b Palm).
+connected, or possibly what type of substrate it is (e.g. v12d Patch vs v12b Palm).
 */
 bool fpcTouchDetected() {
   int touchValue = touchRead(TOUCH_PIN);
