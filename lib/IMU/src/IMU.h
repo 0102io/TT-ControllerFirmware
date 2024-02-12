@@ -14,12 +14,12 @@ public:
     void setupIMU();
     void poll();
     uint8_t* dataPtr;
+    uint16_t tempInt;
 
 private:
     Adafruit_LSM6DSOX sox;
     int32_t float2int32[6];
     uint8_t dataAsBytes[26];
-    uint16_t tempInt;
 };
 
 #endif // IMU_H

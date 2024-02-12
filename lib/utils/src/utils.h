@@ -110,6 +110,7 @@ extern std::vector<uint8_t> macAddress;
 extern std::vector<uint8_t> deviceInfo;
 
 extern uint8_t batteryPercent;
+extern uint16_t imuTemperature;
 
 extern uint8_t statusUpdateFreq;
 

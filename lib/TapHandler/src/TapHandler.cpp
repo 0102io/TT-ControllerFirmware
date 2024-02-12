@@ -332,6 +332,8 @@ void TapHandler::tap() {
       #endif
     #endif
 
+    unsigned long balance = 0;
+
     #ifdef OVERTAP_PROTECTION
       // this section needs to be tested again
       unsigned long interval = (millis() - tapperMonitor[r][c].lastMillis) * 10; // why is this multiplied by 10?
@@ -347,7 +349,7 @@ void TapHandler::tap() {
       else attenuatedOnDur = 0;
       
       unsigned long newOnDuration = (attenuatedOnDur < (onDuration / 10)) ? attenuatedOnDur : (onDuration / 10); // don't tap longer than intended
-      unsigned long balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
+      balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
       
       int newHeat = (onDuration / 10) * ON_DURATION_MULTIPLIER - interval + lastHeat;
       
@@ -356,6 +358,24 @@ void TapHandler::tap() {
 
     #endif //OVERTAP_PROTECTION
 
+    // attenuate the tap if the IMU is hot (which means the board is hot)
+    if (imuTemperature > 62) {
+      balance += onDuration * 7 / 8;
+      onDuration = onDuration / 8;
+    }
+    else if (imuTemperature >= 58) {
+      balance += onDuration * 3 / 4;
+      onDuration = onDuration / 4;
+    }
+    else if (imuTemperature >= 54) {
+      balance += onDuration / 2;
+      onDuration = onDuration / 2;
+    }
+    else if (imuTemperature >= 50) {
+      balance += onDuration / 4;
+      onDuration = onDuration * 3 / 4;
+    }
+    
 
     driver[rowParentID]->setOutputVal(rowOutputPin);
     driver[rowParentID]->setOutputCNF(rowOutputPin, rowPolarity);
@@ -378,9 +398,7 @@ void TapHandler::tap() {
         digitalWrite(LED, LOW);
       #endif
     #endif
-    #ifdef OVERTAP_PROTECTION
-      delayMicroseconds(balance*10);
-    #endif //OVERTAP_PROTECTION
+    delayMicroseconds(balance*10);
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
     delayMicroseconds(onDuration*10);

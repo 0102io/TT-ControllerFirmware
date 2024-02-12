@@ -243,20 +243,7 @@ function handleNotifications(event) {
             additionalDataString = "Serial Number: " + serialNumberBytes.join(":");
             additionalDataString += `, Controller Version: ${additionalData[6]}.${additionalData[7]}, `;
             additionalDataString += `Firmware Version: ${additionalData[8]}.${additionalData[9]}.${additionalData[10]}, `;
-            // let board = ``;
-            // switch (additionalDataString[11]) {
-            //     case 0:
-            //         board = `Swatch`;
-            //         break;
-            //     case 1:
-            //         board = `PALM`;
-            //         break;
-            //     default:
-            //         board = `Unknown: ${additionalDataString[11]}`;
-            //         break;
-            // }
-            // additionalDataString += `Connected Board: ${board}, `;
-            additionalDataString += `Connected Board: ${additionalData[11]}, `; // TODO not sure what's wrong with the above code but fixing that later
+            additionalDataString += `Connected Board: ${additionalData[11]}, `;
             additionalDataString += `Version: ${additionalData[12]}.${additionalData[13]}`;
             break;
         default:

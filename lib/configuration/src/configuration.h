@@ -13,15 +13,15 @@
 #define VERSION_IS(MAJOR, MINOR) (HARDWARE_VERSION_MAJOR == (MAJOR) && HARDWARE_VERSION_MINOR == (MINOR))
 #define VERSION_IS_AT_LEAST(MAJOR, MINOR) ((HARDWARE_VERSION_MAJOR > (MAJOR)) || (HARDWARE_VERSION_MAJOR == (MAJOR) && HARDWARE_VERSION_MINOR >= (MINOR)))
 
-#define SWATCH 0 // TODO this should start at 1 instead because undefined things will evaluate as 0
-#define PALM 1
+#define PATCH 1
+#define PALM 2
 #define R20C20 97
 #define ONBOARD 98
 #define CUSTOM 99
 
 /*
 Enter the type of substrate and version number of the substrate here.
-e.g. v12d swatch = SWATCH, 12, 3
+e.g. v12d patch = PATCH, 12, 3
 */
 #define CONNECTED_BOARD PALM
 #define CONNECTED_VERSION_MAJOR 12
@@ -128,7 +128,7 @@ static const unsigned long offDur_init = 1000; // tenths of a ms
 // stress test vector
 static const std::vector<uint8_t> stressTestVect = {
     1, 1, // message tpye, tapoutID
-    3, 12 // v12d on the controller (using the reverse swatch pinout) --> row (anode) is CH2, col (cathode) is CH4
+    3, 12 // v12d/e on the controller (using the reverse patch pinout) --> row (anode) is CH2, col (cathode) is CH4
     // 0, 0, // row, col
     // 1, 0,
     // 2, 0,
@@ -167,135 +167,6 @@ static const int fpcTouchThreshold = 34600; // needs tuning
 
 /* -------------SUBSTRATE PINOUTS------------- */
 
-#if CONNECTED_BOARD == R20C20 && (CONNECTED_VERSION_MAJOR == 11 && CONNECTED_VERSION_MINOR == 2)
-  static const Channel rows[] = {
-    {0, 1, ANODE}, // CH0
-    {3, 4, ANODE}, // CH1
-    {0, 5, ANODE}, // CH2
-    {3, 6, ANODE}, // CH3
-    {0, 7, ANODE}, // CH4
-    {3, 9, ANODE}, // CH5
-    {0, 9, ANODE}, // CH6
-    {3, 7, ANODE}, // CH7
-    {0, 6, ANODE}, // CH8
-    {3, 5, ANODE}, // CH9
-    {0, 4, ANODE}, // CH10
-    {3, 1, ANODE}, // CH11
-    {0, 2, ANODE}, // CH12
-    {3, 3, ANODE}, // CH13
-    {0, 8, ANODE}, // CH14
-    {3, 2, ANODE}, // CH15
-    {3, 10, ANODE},// CH16
-    {3, 8, ANODE}, // CH17
-    {0, 3, ANODE}, // CH18
-    {2, 6, ANODE} // CH19
-  };
-
-  static const Channel cols[] = {
-    {0, 10},// CH20
-    {1, 5}, // CH21
-    {2, 9}, // CH22
-    {1, 7}, // CH23
-    {2, 7}, // CH24
-    {1, 9}, // CH25
-    {2, 5}, // CH26
-    {1, 6}, // CH27
-    {2, 1}, // CH28
-    {1, 4}, // CH29
-    {1, 1}, // CH30
-    {2, 4}, // CH31
-    {2, 2}, // CH32
-    {1, 3}, // CH33
-    {2, 8}, // CH34
-    {1, 10},// CH35
-    {2, 10},// CH36
-    {1, 8}, // CH37
-    {2, 3}, // CH38
-    {1, 2}  // CH39
-  };
-#endif
-
-#if CONNECTED_BOARD == R20C20 && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 0)
-  static const Channel rows[] = {
-    {3, 5, ANODE}, // CH0
-    {3, 7, ANODE}, // CH1
-    {0, 8, ANODE}, // CH2
-    {3, 1, ANODE}, // CH3
-    {3, 2, ANODE}, // CH4
-    {0, 2, ANODE}, // CH5
-    {0, 1, ANODE}, // CH6
-    {3, 8, ANODE}, // CH7
-    {3, 9, ANODE}, // CH8
-    {3, 6, ANODE}, // CH9
-    {0, 5, ANODE}, // CH10
-    {0, 7, ANODE}, // CH11
-    {3, 4, ANODE}, // CH12
-    {3, 3, ANODE}, // CH13
-    {3, 10, ANODE}, // CH14
-    {0, 9, ANODE}, // CH15
-    {0, 6, ANODE},// CH16
-    {0, 4, ANODE}, // CH17
-    {2, 8, ANODE}, // CH18
-    {2, 2, ANODE} // CH19
-  };
-
-  static const Channel cols[] = {
-    {0, 3},// CH20
-    {0, 10}, // CH21
-    {2, 1}, // CH22
-    {1, 8}, // CH23
-    {1, 2}, // CH24
-    {1, 1}, // CH25
-    {1, 5}, // CH26
-    {2, 5}, // CH27
-    {2, 3}, // CH28
-    {2, 7}, // CH29
-    {2, 10}, // CH30
-    {2, 4}, // CH31
-    {1, 7}, // CH32
-    {1, 10}, // CH33
-    {1, 3}, // CH34
-    {1, 9},// CH35
-    {1, 6},// CH36
-    {1, 4}, // CH37
-    {2, 9}, // CH38
-    {2, 6}  // CH39
-  };
-#endif
-
-#if CONNECTED_BOARD == PALM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 1)
-  static const Channel rows[] = {
-    {2, 3, ANODE},
-    {1, 8, ANODE},
-    {1, 7, ANODE},
-    {1, 2, ANODE},
-    {1, 5, ANODE},
-    {1, 1, ANODE},
-    {1, 6, ANODE},
-    {2, 5, ANODE},
-    {2, 9, ANODE},
-    {2, 2, ANODE},
-    {0, 8, ANODE},
-    {1, 3, ANODE},
-    {0, 2, ANODE}
-  };
-
-  static const Channel cols[] = {
-    {2, 4},
-    {2, 10},
-    {2, 6},
-    {2, 1},
-    {1, 9},
-    {2, 7},
-    {1, 4},
-    {0, 10},
-    {0, 4},
-    {0, 7},
-    {0, 3},
-    {0, 5}
-  };
-#endif
-
 #if CONNECTED_BOARD == ONBOARD && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 0)
   static const Channel rows[] = {
     {3, 1, ANODE} // CH3
@@ -306,51 +177,7 @@ static const int fpcTouchThreshold = 34600; // needs tuning
   };
 #endif
 
-#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 0)
-  static const Channel rows[] = {
-    {3, 5, ANODE}, // CH0
-    {3, 7, ANODE}, // CH1
-    {3, 7, CATHODE}, // CH1
-    {3, 5, CATHODE} // CH0
-  };
-
-  static const Channel cols[] = {
-    {0, 3},// CH20
-    {0, 10} // CH21
-  };
-#endif
-
-#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 11 && CONNECTED_VERSION_MINOR == 2)
-  static const Channel cols[] = {
-    {0, 1, ANODE}, // CH0
-    {3, 4, ANODE}, // CH1
-    {0, 5, ANODE}, // CH2
-    {3, 6, ANODE}, // CH3
-    {0, 7, ANODE} // CH4
-  };
-
-  static const Channel rows[] = {
-    {3, 9}, // CH5
-    {0, 9}, // CH6
-    {3, 7}, // CH7
-    {0, 6}, // CH8
-    {3, 5} // CH9
-  };
-#endif
-
-#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 1)
-  static const Channel cols[] = {
-    {0, 5, ANODE},
-    {0, 2, ANODE},
-  };
-
-  static const Channel rows[] = {
-    {2, 10},
-    {1, 2},
-  };
-#endif
-
-#if CONNECTED_BOARD == SWATCH && (CONNECTED_VERSION_MAJOR == 11 && CONNECTED_VERSION_MINOR == 2)
+#if CONNECTED_BOARD == PATCH && (CONNECTED_VERSION_MAJOR == 11 && CONNECTED_VERSION_MINOR == 2)
   static const Channel rows[] = {
     {3, 3, ANODE}, // CH13
     {3, 2, ANODE}, // CH15
@@ -458,7 +285,7 @@ static const int fpcTouchThreshold = 34600; // needs tuning
   };
 #endif
 
-#if CONNECTED_BOARD == SWATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 2)
+#if CONNECTED_BOARD == PATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 2)
   static const Channel rows[] = {
     {2, 7, CATHODE}, // CH26
     {2, 1, CATHODE}, // CH29
@@ -508,7 +335,7 @@ static const int fpcTouchThreshold = 34600; // needs tuning
   };
 #endif
 
-#if CONNECTED_BOARD == SWATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
+#if CONNECTED_BOARD == PATCH && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
   static const Channel rows[] = {
     {0, 5, ANODE}, // CH12
     {3, 1, ANODE}, // CH31
@@ -554,55 +381,6 @@ static const int fpcTouchThreshold = 34600; // needs tuning
     {2, 5}, // CH39
     {2, 3}, // CH30
     {1, 5} // CH13
-  };
-#endif
-
-#if CONNECTED_BOARD == CUSTOM && (CONNECTED_VERSION_MAJOR == 12 && CONNECTED_VERSION_MINOR == 3)
-// NOTE: this is the reversed swatch for testing with the tail PCB - but it is untested
-  static const Channel rows[] = {
-    {2, 7, ANODE}, // CH27
-    {0, 4, ANODE}, // CH08
-    {2, 6, ANODE}, // CH38
-    {2, 1, ANODE}, // CH37
-    {2, 9, ANODE}, // CH36
-    {2, 8, ANODE}, // CH34
-    {2, 10, ANODE}, // CH32
-    {2, 3, ANODE}, // CH30
-    {3, 5, ANODE}, // CH29
-    {2, 5, ANODE}, // CH39
-    {3, 10, ANODE}, // CH24
-    {0, 9, ANODE}, // CH06
-    {1, 1, ANODE}, // CH15
-    {1, 5, ANODE}, // CH13
-    {0, 5, ANODE}, // CH12
-    {1, 7, ANODE}, // CH11
-    {0, 7, ANODE}, // CH10
-    {1, 4, ANODE}, // CH05
-    {0, 8, ANODE}, // CH03
-    {1, 10, ANODE}, // CH01
-    {1, 6, ANODE}, // CH07
-    {3, 2, ANODE} // CH25
-  };
-
-  static const Channel cols[] = {
-    {1, 2}, // CH23
-    {3, 9}, // CH22
-    {1, 8}, // CH21
-    {3, 6}, // CH20
-    {3, 4}, // CH19
-    {1, 3}, // CH18
-    {3, 3}, // CH17
-    {0, 2}, // CH16
-    {0, 1}, // CH14
-    {3, 7}, // CH28
-    {3, 1}, // CH31
-    {2, 2}, // CH33
-    {2, 4}, // CH35
-    {0, 10}, // CH04
-    {0, 3}, // CH02
-    {0, 6}, // CH00
-    {1, 9}, // CH09
-    {3, 8} // CH26
   };
 #endif
 
