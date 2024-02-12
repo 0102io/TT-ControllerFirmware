@@ -109,8 +109,7 @@ extern volatile bool otaProceed;
 extern std::vector<uint8_t> macAddress;
 extern std::vector<uint8_t> deviceInfo;
 
-extern volatile uint8_t batteryPercent;
-extern volatile uint8_t batteryDetected;
+extern uint8_t batteryPercent;
 extern uint16_t imuTemperature;
 
 extern uint8_t statusUpdateFreq;

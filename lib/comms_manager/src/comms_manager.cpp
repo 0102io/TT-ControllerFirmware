@@ -102,8 +102,7 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
             uint8_t pollingFrequency = rxValue[1];
             if (pollingFrequency == 0) pollingFrequency = 1; // this could alternatively be used to stop automatic status updates
             if (pollingFrequency > MAX_TRANSMISSION_FREQUENCY) pollingFrequency = MAX_TRANSMISSION_FREQUENCY;
-            unsigned long statusInterval = 1000 / pollingFrequency;
-            setStatusTimer(statusInterval);
+            statusUpdateFreq = pollingFrequency;
             // TODO also tell the IMU to use the nearest sampling frequency
           }
           break;

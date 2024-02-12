@@ -40,8 +40,6 @@ void TapHandler::setupTapHandler() {
     }
     
     currentTapOutID = NO_TAPOUT_ID;
-    halfFullRising = false;
-    halfFullFalling = false;
     overtappedRowIndex = EMPTY_TAP;
     overtappedColIndex = EMPTY_TAP;
 }
@@ -103,6 +101,8 @@ If the total message size is incorrect, we clear the queue because we don't know
 if we tap it out as is then it will almost certainly feel wrong.
 
 For proper structuring of the TAP_OUT message, see the docs.
+
+TODO: build a message with all the warning indicies and values to send back to central
 */
 void TapHandler::addToQueue(std::vector<uint8_t> data) {
 
@@ -114,7 +114,6 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
 
   // read each row and col into tap arrays
   int len = (int) data.size();
-  if (((tapQ.getSize() + len) > (MAX_QUEUE_SIZE / 2)) && !halfFullRising) halfFullRising = true; // let central know we just passed 50% full threshold
   
   uint16_t i; // used after the loop
 
@@ -405,11 +404,6 @@ void TapHandler::tap() {
     delayMicroseconds(onDuration*10);
   }
   setTapTimer(offDuration);
-  if (halfFullRising && (tapQ.getSize() < (MAX_QUEUE_SIZE / 2))) {
-    halfFullFalling = true;
-    halfFullRising = false;
-    setStatusTimer(1); // notify central that we have more than 50% space in the queue
-  }
 }
 
 /*
@@ -423,21 +417,10 @@ bool TapHandler::isDoneTapping() {
 Helper function to collect all the status data.
 */
 std::vector<uint8_t> TapHandler::getStatus() {
-  std::vector<uint8_t> status(11);
+  std::vector<uint8_t> status(3);
   status[0] = currentTapOutID;
-  status[1] = (uint8_t)halfFullFalling;
-  if (halfFullFalling) halfFullFalling = false; // reset the flag once it's been sent
-  status[2] = (uint8_t)(tapQ.headroom() >> 8);
-  status[3] = (uint8_t)tapQ.headroom();
-  status[4] = (uint8_t)(firstRejectedIndex >> 8);
-  status[5] = (uint8_t)firstRejectedIndex;
-  status[6] = warningCode;
-  status[7] = (uint8_t)(warningValue >> 8);
-  status[8] = (uint8_t)warningValue;
-  status[9] = overtappedRowIndex;
-  overtappedRowIndex = EMPTY_TAP; // reset the notification
-  status[10] = overtappedColIndex;
-  overtappedColIndex = EMPTY_TAP;
+  status[1] = (uint8_t)(tapQ.headroom() >> 8);
+  status[2] = (uint8_t)tapQ.headroom();
   return status;
 }
 

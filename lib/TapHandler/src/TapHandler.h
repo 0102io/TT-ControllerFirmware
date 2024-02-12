@@ -72,9 +72,6 @@ private:
     uint8_t warningCode;
     uint16_t warningValue;
 
-    bool halfFullRising;
-    bool halfFullFalling;
-
     uint8_t currentTapOutID;
 
     // H bridge driver object array
