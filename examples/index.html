@@ -28,7 +28,7 @@
             <button id="connectBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2 mr-2">Connect</button>
             <button id="getDeviceInfoBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2 mr-2">Get Device Info</button>
             <button id="uploadCodeBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2">Upload Firmware</button>
-        </div>
+        </div> 
         <button id="tapOutBtn" class="bg-blue-500 text-white w-40 h-10 rounded">TAP_OUT</button>
         <div class="flex items-center mb-2 pt-2 pb-1">
           <label class="ml-2">Identifier: <input id="tapoutID" type="number" min="1" max="255" class="w-12 rounded border" value="2"></label>
@@ -57,6 +57,22 @@
             <label class="ml-2">Qty: <input id="qty2" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
             <label class="text-sm text-gray-600 ml-2">Third Tap</label>
         </div>
+        <div id="statusUpdateContainer" class="mt-4 grid grid-cols-2">
+          <h2 class="text-xl col-span-2">Status Update Data</h2>
+          <div>Last Received Tap Out ID: <span id="tid">-</span></div>
+          <div>Accel X: <span id="accelx">-</span></div>
+          <div>Battery State of Charge: <span id="batteryPercent">-</span>%</div>
+          <div>Accel Y: <span id="accely">-</span></div>
+          <div>Battery Voltage: <span id="batteryVoltage">-</span>V</div>
+          <div>Accel Z: <span id="accelz">-</span></div>
+          <div>Charge Rate: <span id="batteryCRate">-</span>%/hr</div>
+          <div>Gyro X: <span id="gyrox">-</span></div>
+          <div>Tap Queue Headroom: <span id="headroom">-</span> taps</div>
+          <div>Gyro Y: <span id="gyroy">-</span></div>
+          <div>Temperature: <span id="temp">-</span> C</div>
+          <div>Gyro Z: <span id="gyroz">-</span></div>
+        </div>
+        
     </div>
     <div id="consoleLog" class="console-log mx-auto mt-4 p-4 bg-white w-3/4 rounded shadow">
     </div>

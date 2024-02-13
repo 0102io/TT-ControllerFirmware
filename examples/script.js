@@ -202,13 +202,9 @@ function handleNotifications(event) {
         case ReceivedMessageType.STATUS_UPDATE:
             // note: when comparing to the readme, note that the message type byte has already been taken off here
             let batteryPercent = additionalData[0];
-            additionalDataString = `Battery%: ${batteryPercent}%`;
-        
             let tapHandlerStatus = additionalData.slice(1, 4);
             let tapOutID = tapHandlerStatus[0];
             let tapQHeadroom = (tapHandlerStatus[1] << 8) | tapHandlerStatus[2];
-            additionalDataString += ` Tap Out ID: ${tapOutID}, Tap Queue Headroom: ${tapQHeadroom}`;
-
             let imuData = additionalData.slice(4, 30);
             let accelX = (imuData[0] << 24 | imuData[1] << 16 | imuData[2] << 8 | imuData[3]) / 1000;
             let accelY = (imuData[4] << 24 | imuData[5] << 16 | imuData[6] << 8 | imuData[7]) / 1000;
@@ -217,7 +213,19 @@ function handleNotifications(event) {
             let gyroY = (imuData[16] << 24 | imuData[17] << 16 | imuData[18] << 8 | imuData[19]) / 1000;
             let gyroZ = (imuData[20] << 24 | imuData[21] << 16 | imuData[22] << 8 | imuData[23]) / 1000;
             let temperature = (imuData[24] << 8 | imuData[25]) / 10;
-            additionalDataString += ` Accel X: ${accelX} Y: ${accelY} Z: ${accelZ}, Gyro X: ${gyroX} Y: ${gyroY} Z: ${gyroZ}, Temperature:  ${temperature}`;
+
+            document.getElementById("tid").textContent = tapOutID.toFixed(0);
+            document.getElementById("batteryPercent").textContent = batteryPercent.toFixed(0);
+            // document.getElementById("batteryVoltage").textContent = batteryVoltage.toFixed(2);
+            // document.getElementById("batteryCRate").textContent = batteryCRate.toFixed(1);
+            document.getElementById("headroom").textContent = tapQHeadroom.toFixed(0);
+            document.getElementById("temp").textContent = temperature.toFixed(1);
+            document.getElementById("accelx").textContent = accelX.toFixed(3);
+            document.getElementById("accely").textContent = accelY.toFixed(3);
+            document.getElementById("accelz").textContent = accelZ.toFixed(3);
+            document.getElementById("gyrox").textContent = gyroX.toFixed(3);
+            document.getElementById("gyroy").textContent = gyroY.toFixed(3);
+            document.getElementById("gyroz").textContent = gyroZ.toFixed(3);
             break;
         case ReceivedMessageType.TAPOUT_COMPLETE:
             additionalDataString = `Message ID: ${additionalData[0]}`;
@@ -251,8 +259,10 @@ function handleNotifications(event) {
             break;
     }
 
-    console.log(`Received message: ${messageTypeString}, ${additionalDataString}`);
-    appendToConsole(`Received message: ${messageTypeString}, ${additionalDataString}`);
+    if (!ReceivedMessageType.STATUS_UPDATE) {
+        console.log(`Received message: ${messageTypeString}, ${additionalDataString}`);
+        appendToConsole(`Received message: ${messageTypeString}, ${additionalDataString}`);
+    }
 }
 
 async function sendMessage(buffer, messageType) {
