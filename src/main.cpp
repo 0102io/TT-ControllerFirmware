@@ -3,9 +3,9 @@
 #include "TapHandler.h"
 #include "comms_manager.h"
 #include "utils.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 
 TapHandler tapHandler;
 IMU imu;

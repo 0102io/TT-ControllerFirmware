@@ -34,28 +34,34 @@
           <label class="ml-2">Identifier: <input id="tapoutID" type="number" min="1" max="255" class="w-12 rounded border" value="2"></label>
       </div>
         <div class="flex items-center mb-2 pt-2 pb-1">
-            <label class="ml-2">Row: <input id="rowIndex0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
-            <label class="ml-2">Col: <input id="colIndex0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">ACS: <input id="anodeCS0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">AOP: <input id="anodeOutputPin0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">CCS: <input id="cathodeCS0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">COP: <input id="cathodeOutputPin0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
             <label class="ml-2">On (0.01ms): <input id="onDur0" type="number" min="1" max="300" class="w-12 rounded border" value="10"></label>
             <label class="ml-2">Off (0.1ms): <input id="offDur0" type="number" min="0" max="10000" class="w-12 rounded border" value="1000"></label>
             <label class="ml-2">Qty: <input id="qty0" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
             <label class="text-sm text-gray-600 ml-2">First Tap</label>
         </div>
         <div class="flex items-center mb-2 pt-1 pb-1">
-            <label class="ml-2">Row: <input id="rowIndex1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
-            <label class="ml-2">Col: <input id="colIndex1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">ACS: <input id="anodeCS1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">AOP: <input id="anodeOutputPin1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">CCS: <input id="cathodeCS1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+            <label class="ml-2">COP: <input id="cathodeOutputPin1" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
             <label class="ml-2">On (0.01ms): <input id="onDur1" type="number" min="1" max="300" class="w-12 rounded border" value="10"></label>
-            <label class="ml-2">Off (0.1ms): <input id="offDur1" type="number" min="1" max="255" class="w-12 rounded border" value="2000"></label>
+            <label class="ml-2">Off (0.1ms): <input id="offDur1" type="number" min="0" max="10000" class="w-12 rounded border" value="1000"></label>
             <label class="ml-2">Qty: <input id="qty1" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
             <label class="text-sm text-gray-600 ml-2">Second Tap</label>
         </div>
         <div class="flex items-center mb-2 pt-1 pb-3">
-            <label class="ml-2">Row: <input id="rowIndex2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
-            <label class="ml-2">Col: <input id="colIndex2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
-            <label class="ml-2">On (0.01ms): <input id="onDur2" type="number" min="1" max="300" class="w-12 rounded border" value="10"></label>
-            <label class="ml-2">Off (0.1ms): <input id="offDur2" type="number" min="10" max="255" class="w-12 rounded border" value="3000"></label>
-            <label class="ml-2">Qty: <input id="qty2" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
-            <label class="text-sm text-gray-600 ml-2">Third Tap</label>
+          <label class="ml-2">ACS: <input id="anodeCS2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+          <label class="ml-2">AOP: <input id="anodeOutputPin2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+          <label class="ml-2">CCS: <input id="cathodeCS2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+          <label class="ml-2">COP: <input id="cathodeOutputPin2" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
+          <label class="ml-2">On (0.01ms): <input id="onDur2" type="number" min="1" max="300" class="w-12 rounded border" value="10"></label>
+          <label class="ml-2">Off (0.1ms): <input id="offDur2" type="number" min="0" max="10000" class="w-12 rounded border" value="1000"></label>
+          <label class="ml-2">Qty: <input id="qty2" type="number" min="1" max="10" class="w-12 rounded border" value="2"></label>
+          <label class="text-sm text-gray-600 ml-2">Third Tap</label>
         </div>
         <div id="statusNotificationContainer" class="mt-4 grid grid-cols-2">
           <h2 class="text-xl col-span-2">Status Update Data</h2>

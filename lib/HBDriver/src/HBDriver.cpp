@@ -22,21 +22,18 @@ HBDriver::HBDriver(uint8_t cs) {
     outputRegister7to10 |= (0 << OVLO);
 }
 
-void HBDriver::setOutputCNF(uint8_t output1to10, uint8_t cnf) {
-    uint8_t out = output1to10 - 1;
+void HBDriver::setOutputCNF(uint8_t out, uint8_t cnf) {
     uint16_t &outputRegister = (out < 6) ? outputRegister1to6 : outputRegister7to10; 
     if (cnf) outputRegister |= (1 << HBCNFbit[out]); // set the bit
     else outputRegister &= ~(1 << HBCNFbit[out]); // clear the bit
 }
 
-void HBDriver::setOutputVal(uint8_t output1to10) {
-  uint8_t out = output1to10 - 1;
+void HBDriver::setOutputVal(uint8_t out) {
   uint16_t &outputRegister = (out < 6) ? outputRegister1to6 : outputRegister7to10; 
   outputRegister |= (1 << HBENbit[out]);
 }
 
-void HBDriver::clrOutputVal(uint8_t output1to10) {
-  uint8_t out = output1to10 - 1;
+void HBDriver::clrOutputVal(uint8_t out) {
   uint16_t &outputRegister = (out < 6) ? outputRegister1to6 : outputRegister7to10; 
   outputRegister &= ~(1 << HBENbit[out]);
 }
