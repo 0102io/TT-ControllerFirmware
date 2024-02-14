@@ -220,7 +220,8 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
       }
       if (queueFull) {
         addToWarningQ(QUEUE_FULL);
-        addToWarningQ(rejectedIndex);
+        addToWarningQ((uint8_t)(rejectedIndex >> 8));
+        addToWarningQ((uint8_t)rejectedIndex);
       }
       if (incorrectMsgSize) addToWarningQ(INCORRECT_MSG_SIZE);
       EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
