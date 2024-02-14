@@ -100,9 +100,9 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
           if (msgSize > 1) {
             disableStatusTimer();
             uint8_t pollingFrequency = rxValue[1];
-            if (pollingFrequency == 0) pollingFrequency = 1; // this could alternatively be used to stop automatic status updates
+            if (pollingFrequency == 0) pollingFrequency = 1; // right now we need status messages to be sent because that causes the board temp to be checked regularly
             if (pollingFrequency > MAX_TRANSMISSION_FREQUENCY) pollingFrequency = MAX_TRANSMISSION_FREQUENCY;
-            statusUpdateFreq = pollingFrequency;
+            statusNotificationFreq = pollingFrequency;
             // TODO also tell the IMU to use the nearest sampling frequency
           }
           break;
@@ -224,5 +224,20 @@ void notifyCentral(uint8_t type, const std::vector<uint8_t>& data) {
   }
   // use the TX characteristic
   pTxCharacteristic->setValue(txValue, sz+1);
+  pTxCharacteristic->notify(); // Send the data over BLE
+}
+
+/*
+Overloaded function that only writes out the first [numBytes] of the vector
+*/
+void notifyCentral(uint8_t type, const std::vector<uint8_t>& data, uint16_t numBytes) {
+  if (!centralConnected) return;
+  uint8_t txValue[numBytes + 1];
+  txValue[0] = type;
+  for (int i = 1; i < numBytes + 1; i++) {
+    txValue[i] = data[i-1];
+  }
+  // use the TX characteristic
+  pTxCharacteristic->setValue(txValue, numBytes+1);
   pTxCharacteristic->notify(); // Send the data over BLE
 }

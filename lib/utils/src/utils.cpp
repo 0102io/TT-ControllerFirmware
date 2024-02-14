@@ -23,16 +23,23 @@ bool hbDisbaledEvent = false;
 bool otaRequest = false;
 volatile bool otaProceed = false;
 
-uint8_t statusUpdateFreq;
+uint8_t statusNotificationFreq;
 
 std::vector<uint8_t> macAddress(6);
 std::vector<uint8_t> deviceInfo(16);
 
 EventGroupHandle_t tapEventGroup;
-EventGroupHandle_t statusEventGroup;
+EventGroupHandle_t notificationEventGroup;
+
+std::vector<uint8_t> warningQ(MAX_WARNING_QUEUE_SIZE);
+uint16_t warningQTail = 0; // first open position in the queue
+SemaphoreHandle_t warningQMutex;
 
 uint8_t batteryPercent = 0;
+float batteryVoltage = 0;
+float batteryCRate = 0;
 uint16_t imuTemperature;
+uint8_t boardOverheatLevel = 0;
 
 Adafruit_MAX17048 fuelGauge;
 bool socChanged = false;
@@ -65,13 +72,13 @@ void setupUtils() {
 
   statusTimer = timerBegin(1, CPU_CLK_FREQ / 1000000, true);
   timerAttachInterrupt(statusTimer, &statusTimerInterrupt, true);
-  statusEventGroup = xEventGroupCreate();
+  notificationEventGroup = xEventGroupCreate();
   statusTimerRepeat = true;
 
   #if VERSION_IS_AT_LEAST(12, 3)
   watchdogPetTimer = timerBegin(2, CPU_CLK_FREQ / 1000000, true);
   timerAttachInterrupt(watchdogPetTimer, &petWatchDog, true);
-  statusEventGroup = xEventGroupCreate();
+  notificationEventGroup = xEventGroupCreate();
   #endif // VERSION_IS_AT_LEAST(12, 3)
 
   inactivityTimer = timerBegin(3, CPU_CLK_FREQ / 1000000, true);
@@ -224,6 +231,7 @@ void setupUtils() {
   #endif
   esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(USER_BUTTON), LOW);
   setInactivityTimer(true);
+  warningQMutex = xSemaphoreCreateMutex();
 }
 
 // wrapper for xTaskCreate
@@ -311,7 +319,7 @@ void setupFuelGauge() {
   else DPRINTLN("Fuel gauge not found");
   delay(1);
   setFuelGaugeConfig();
-  delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate
+  delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate (about 200ms)
   batteryPercent = (uint8_t)fuelGauge.cellPercent();
   ARGPRINTLN("battery percent = ", batteryPercent);
 }
@@ -330,6 +338,11 @@ void setFuelGaugeConfig() {
 
 void fuelGaugeAlertISR() {
   if (digitalRead(ALRT_PIN) == LOW) socChanged = true;
+}
+
+void updateBatteryVoltageAndCRate() {
+  batteryVoltage = fuelGauge.cellVoltage();
+  batteryCRate = fuelGauge.chargeRate();
 }
 #endif // VERSION_IS_AT_LEAST(12, 4)
 
@@ -488,7 +501,7 @@ Function that is called when the statusTimer alarm fires.
 */
 void IRAM_ATTR statusTimerInterrupt() {
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
-  xEventGroupSetBitsFromISR(statusEventGroup, EVENT_BIT1, &xHigherPriorityTaskWoken);
+  xEventGroupSetBitsFromISR(notificationEventGroup, EVENT_BIT0, &xHigherPriorityTaskWoken);
   if (xHigherPriorityTaskWoken) {
     portYIELD_FROM_ISR();
   }
@@ -502,4 +515,47 @@ void disableStatusTimer() {
 void setStatusTimer(uint64_t durationMS) {
   timerAlarmWrite(statusTimer, durationMS * 1000, false);
   timerAlarmEnable(statusTimer);
+}
+
+// ------------------ Warning Notificaion Functions ------------------
+
+/*
+returns the remaining room in the warning notificaion queue/array
+*/
+uint8_t warningQRoom() {
+  return (MAX_WARNING_QUEUE_SIZE - warningQTail);
+}
+
+/*
+Adds a byte to the warning queue if there is room; returns true if the byte was added
+*/
+bool addToWarningQ(uint8_t byte) {
+  if (warningQRoom()) {
+    warningQ[warningQTail] = byte;
+    warningQTail++;
+    return true;
+  }
+  return false;
+}
+
+/*
+Sets the board temperature level (used for attenuating taps if the board is hot), 
+and sends a warning notification if the level has changed
+*/
+void updateBoardTempLevel(uint16_t temperature) {
+  uint8_t lastOverHeatLevel = boardOverheatLevel;
+  if (temperature > 62) boardOverheatLevel = 4;
+  else if (temperature >= 58) boardOverheatLevel = 3;
+  else if (temperature >= 54) boardOverheatLevel = 2;
+  else if (temperature >= 50) boardOverheatLevel = 1;
+  else boardOverheatLevel = 0;
+
+  if (lastOverHeatLevel != boardOverheatLevel) { // this probably needs some hysteresis so we don't send a bunch of warnings as we're passing each threshold
+    if (xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE) {
+      addToWarningQ(BOARD_OVERHEAT);
+      addToWarningQ(boardOverheatLevel);
+      EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+      xSemaphoreGive(warningQMutex);
+    }
+  }
 }

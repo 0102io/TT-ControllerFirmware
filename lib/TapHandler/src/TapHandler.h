@@ -68,10 +68,6 @@ private:
     uint16_t lastOnDur;
     uint16_t lastOffDur;
 
-    uint16_t firstRejectedIndex; // position of the first tap not added to the queue in the last message. If all were added, this will be the nth+1 index.
-    uint8_t warningCode;
-    uint16_t warningValue;
-
     uint8_t currentTapOutID;
 
     // H bridge driver object array
@@ -82,8 +78,6 @@ private:
 
     // overtap protection
     TapperMonitor** tapperMonitor;
-    uint8_t overtappedRowIndex; 
-    uint8_t overtappedColIndex;
 
     // Current sensing - not being used right now
     const float VtoCgain = 5.6; // V per A

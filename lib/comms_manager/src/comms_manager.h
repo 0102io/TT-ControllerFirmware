@@ -59,5 +59,6 @@ class otaCallbacks: public BLECharacteristicCallbacks {
 
 void setupBLE(TapHandler* tapHandler);
 void notifyCentral(uint8_t type, const std::vector<uint8_t>& data = std::vector<uint8_t>());
+void notifyCentral(uint8_t type, const std::vector<uint8_t>& data, uint16_t numBytes);
 
 #endif // COMMS_MANAGER_H

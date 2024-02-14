@@ -23,7 +23,7 @@
 Enter the type of substrate and version number of the substrate here.
 e.g. v12d patch = PATCH, 12, 3
 */
-#define CONNECTED_BOARD PALM
+#define CONNECTED_BOARD PATCH
 #define CONNECTED_VERSION_MAJOR 12
 #define CONNECTED_VERSION_MINOR 3 // 0 based; i.e. "A" is 0
 
@@ -38,7 +38,7 @@ It does this by calculating a value called "heat" which builds up with large onD
 The values are currently balanced around an assumed safe continuous duty cycle of 3ms onDuration / 51ms offDuration repeated on a single tapper.
 See this sheet for sample calculations: https://docs.google.com/spreadsheets/d/15yVmE13jGJZapsrEjx4v79JR5FFSrgQL-_rgFeacN8Q/edit?usp=sharing
 */
-#define OVERTAP_PROTECTION
+// #define OVERTAP_PROTECTION // currently has a bug causing the board to crash when on and off durations are both very short
 #ifdef OVERTAP_PROTECTION
   #define ON_DURATION_MULTIPLIER 17
   #define ATTENUATION_CONSTANT 10

@@ -12,7 +12,7 @@ const SentMessageType = {
 
 const ReceivedMessageType = {
     STATUS_UPDATE: 1,
-    TAPOUT_COMPLETE: 2,
+    WARNING: 2,
     DEVICE_INFO: 3,
     INVALID_MSG_TYPE: 51,
     INCORRECT_MSG_SIZE: 52,
@@ -227,8 +227,10 @@ function handleNotifications(event) {
             document.getElementById("gyroy").textContent = gyroY.toFixed(3);
             document.getElementById("gyroz").textContent = gyroZ.toFixed(3);
             break;
-        case ReceivedMessageType.TAPOUT_COMPLETE:
-            additionalDataString = `Message ID: ${additionalData[0]}`;
+        case ReceivedMessageType.WARNING:
+            for (let i = 0; i < additionalData.length; i++) {
+                additionalDataString += `[${additionalData[i]}]`
+            }
             break;
         case ReceivedMessageType.INVALID_MSG_TYPE:
             additionalDataString = `Invalid Message Type: ${additionalData[0]}`;
@@ -259,7 +261,7 @@ function handleNotifications(event) {
             break;
     }
 
-    if (!ReceivedMessageType.STATUS_UPDATE) {
+    if (receivedType != ReceivedMessageType.STATUS_UPDATE) {
         console.log(`Received message: ${messageTypeString}, ${additionalDataString}`);
         appendToConsole(`Received message: ${messageTypeString}, ${additionalDataString}`);
     }

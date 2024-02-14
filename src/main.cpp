@@ -10,15 +10,17 @@
 TapHandler tapHandler;
 IMU imu;
 
+SemaphoreHandle_t notifyMutex;
+
 /*
 This function runs as a separate task, and executes when the status timer alarm fires. 
 It sends regular updates of system info, tap related info, and IMU data to central. 
 */
-void statusUpdate(void * parameter) {
+void statusNotification(void * parameter) {
   std::vector<uint8_t> statusArray(30);
 
   for (;;) {
-    xEventGroupWaitBits(statusEventGroup, EVENT_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
+    xEventGroupWaitBits(notificationEventGroup, EVENT_BIT0, pdTRUE, pdFALSE, portMAX_DELAY);
     disableStatusTimer();
 
     if (centralConnected) {
@@ -57,27 +59,47 @@ void statusUpdate(void * parameter) {
       statusArray[27] = imu.dataPtr[23]; // gyroZ LSB
       statusArray[28] = imu.dataPtr[24]; // temperature * 10 (MSB)
       statusArray[29] = imu.dataPtr[25]; // temperature * 10 (LSB)
-      notifyCentral(STATUS_UPDATE, statusArray);
+      if (xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE) {
+        notifyCentral(STATUS_UPDATE, statusArray);
+        xSemaphoreGive(notifyMutex);
+      }
     }
-    unsigned long interval = 1000 / statusUpdateFreq;
+    unsigned long interval = 1000 / statusNotificationFreq;
     if (statusTimerRepeat) setStatusTimer(interval);
+  }
+}
+
+void warningNotification (void * parameter) {
+  for (;;) {
+    xEventGroupWaitBits(notificationEventGroup, EVENT_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
+    if (xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE) {
+      if (xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE) { 
+        notifyCentral(WARNING, warningQ, warningQTail);
+        warningQTail = 0;
+        xSemaphoreGive(warningQMutex);
+      }
+      xSemaphoreGive(notifyMutex);
+    }
   }
 }
 
 void setup() {
   setupUtils();
   tapHandler.setupTapHandler();
-  setupBLE(&tapHandler);
+  setupBLE(&tapHandler); // should move this later so we can't connect before we've finished setting up
   #if VERSION_IS_AT_LEAST(12,0)
   imu.setupIMU();
   #endif // VERSION_IS_AT_LEAST(12,0)
+
+  notifyMutex = xSemaphoreCreateMutex();
   
   // TODO find more appropriate stack size with uxTaskGetStackHighWaterMark()
   uint16_t stackSize = 10000;
   uint8_t priority = 1;
-  createTaskFunction(statusUpdate, "statusTask", stackSize, priority);
+  createTaskFunction(statusNotification, "statusTask", stackSize, priority);
+  createTaskFunction(warningNotification, "warningTask", stackSize, priority);
 
-  statusUpdateFreq = DEFAULT_TRANSMISSION_FREQUENCY;
+  statusNotificationFreq = DEFAULT_TRANSMISSION_FREQUENCY;
 
   #if VERSION_IS_AT_LEAST(12,3)
     setWatchDog(true);
@@ -98,7 +120,6 @@ void setup() {
 void loop() {
   xEventGroupWaitBits(tapEventGroup, EVENT_BIT0, pdTRUE, pdFALSE, portMAX_DELAY);
   if (!tapHandler.isDoneTapping()) {
-    imuTemperature = imu.tempInt / 10; // update the imu temp so we can attenuate the tap if we're running hot
     tapHandler.tap();
   }
   else {

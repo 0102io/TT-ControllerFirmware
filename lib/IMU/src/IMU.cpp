@@ -72,7 +72,8 @@ void IMU::poll()
   float2int32[3] = (int32_t)(gyro.gyro.x * 1000);
   float2int32[4] = (int32_t)(gyro.gyro.y * 1000);
   float2int32[5] = (int32_t)(gyro.gyro.z * 1000);
-  tempInt = temp.temperature * 10;
+  tempInt = temp.temperature * 10; // keep one decimal place
+  updateBoardTempLevel(tempInt/10); // update the temperature state so we can attenuate the tap if we're running hot
 
   // break data into bytes
   dataAsBytes[0] = (float2int32[0] >> 24) & 0xFF;

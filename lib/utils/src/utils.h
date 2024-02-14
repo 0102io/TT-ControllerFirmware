@@ -13,7 +13,7 @@
 
 // BLE byte code sent message types
 #define STATUS_UPDATE 1
-#define TAPOUT_COMPLETE 2
+#define WARNING 2
 #define DEVICE_INFO 3
 
 // BLE byte code error/warning message types
@@ -24,6 +24,8 @@
 #define COL_INDEX_OOB 56
 #define OTA_TIMEOUT 61
 #define QUEUE_FULL 62
+#define BOARD_OVERHEAT 63
+#define OVERTAP 64
 
 // Battery pack byte codes
 #define BATTERY_PERCENT 1
@@ -80,6 +82,7 @@ void receiveAlertSOC();
 void setupFuelGauge();
 void setFuelGaugeConfig();
 void fuelGaugeAlertISR();
+void updateBatteryVoltageAndCRate();
 void IRAM_ATTR tapTimerInterrupt();
 void disableTapTimer();
 void setTapTimer(uint64_t durationTenthsMS);
@@ -93,14 +96,17 @@ void setWatchDog(bool isEnabled);
 void petWatchDog();
 void setInactivityTimer(bool isEnabled);
 void deepSleep();
+uint8_t warningQRoom();
+bool addToWarningQ(uint8_t byte);
+void updateBoardTempLevel(uint16_t temperature);
 
-extern bool statusTimerRepeat; // determines whether statusUpdates are sent continuously or only upon message reception/completion
+extern bool statusTimerRepeat; // determines whether statusNotifications are sent continuously or only upon message reception/completion
 
 extern EventGroupHandle_t tapEventGroup;
-extern EventGroupHandle_t statusEventGroup;
+extern EventGroupHandle_t notificationEventGroup;
 
-#define EVENT_BIT0 (1 << 0) // main loop
-#define EVENT_BIT1 (1 << 1) // imu
+#define EVENT_BIT0 (1 << 0)
+#define EVENT_BIT1 (1 << 1)
 
 extern bool hbDisbaledEvent;
 extern bool otaRequest;
@@ -110,8 +116,16 @@ extern std::vector<uint8_t> macAddress;
 extern std::vector<uint8_t> deviceInfo;
 
 extern uint8_t batteryPercent;
+extern float batteryVoltage;
+extern float batteryCRate;
 extern uint16_t imuTemperature;
+extern uint8_t boardOverheatLevel;
 
-extern uint8_t statusUpdateFreq;
+extern uint8_t statusNotificationFreq;
+
+#define MAX_WARNING_QUEUE_SIZE 254
+extern std::vector<uint8_t> warningQ;
+extern uint16_t warningQTail;
+extern SemaphoreHandle_t warningQMutex;
 
 #endif // UTILS_H

@@ -40,8 +40,6 @@ void TapHandler::setupTapHandler() {
     }
     
     currentTapOutID = NO_TAPOUT_ID;
-    overtappedRowIndex = EMPTY_TAP;
-    overtappedColIndex = EMPTY_TAP;
 }
 
 /*
@@ -76,13 +74,13 @@ void TapHandler::receiveTapOut(std::vector<uint8_t> msg) {
     // add the data into the buffer, and take the new tapout id
     DPRINTLN("adding pattern to buffer");
     addToQueue(msg);
+    currentTapOutID = id; // even though we haven't necessarily finished the last pattern, we change the pattern ID to the most recently received one
     if (!tapTimerEnabled()) {
-      setTapTimer(1); // if we aren't already tapping then start the timer
       #ifdef REGULATOR_PWR_SAVE
         digitalWrite(REG12V_EN_PIN, HIGH); // also enable the 12V regulator
       #endif
+      setTapTimer(1); // if we aren't already tapping then start the timer
     }
-    currentTapOutID = id; // even though we haven't necessarily finished the last pattern, we change the pattern ID to the most recently received one
     return;
   }
 }
@@ -111,13 +109,17 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   uint8_t c;
   uint16_t on;
   uint16_t off;
+  bool queueFull = false;
+  uint16_t rejectedIndex;
+  bool incorrectMsgSize = false;
+  const uint8_t sz = 10;
+  std::vector<uint16_t> oobIndices(sz); // if there are are more than 10 paramOOB errors we probably don't need to flag them all
+  uint8_t oobIndexTail = 0;
 
   // read each row and col into tap arrays
   int len = (int) data.size();
-  
-  uint16_t i; // used after the loop
 
-  for (i = 0; i < len; i+= 2) {
+  for (int i = 0; i < len; i+= 2) {
     if (data[i] & 0x80) { // 1 as the most significant bit in the row index means we should expect to read settings
       // this block will contain row, col, onDur, offDur
       if (i + 5 < len) {
@@ -129,20 +131,26 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         // check the parameters to make sure they're in bounds
         if (r > numRows - 1) {
           r = EMPTY_TAP;
-          warningCode = PARAM_OOB;
-          warningValue = i;
+          if (oobIndexTail < sz) {
+            oobIndices[oobIndexTail] = i;
+            oobIndexTail++;
+          }
           ARGPRINTLN("Error: row index OOB. Index: ", i);
         }
         if (c > numCols - 1) {
           c = EMPTY_TAP;
-          warningCode = PARAM_OOB;
-          warningValue = i + 1;
+          if (oobIndexTail < sz) {
+            oobIndices[oobIndexTail] = i+1;
+            oobIndexTail++;
+          }
           ARGPRINTLN("Error: col index OOB. Index: ", i + 1);
         }
         if (on > onDur_max) {
           on = onDur_max;
-          warningCode = PARAM_OOB;
-          warningValue = i + 2;
+          if (oobIndexTail < sz) {
+            oobIndices[oobIndexTail] = i+2; // MSB of onDur
+            oobIndexTail++;
+          }
           ARGPRINTLN("Error: onDur OOB. Index: ", i + 2);
         }
         // no need to check offDur, any 16 bit value is valid
@@ -150,9 +158,10 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
 
         if (!tapQ.isFull()) tapQ.push(r, c, on, off);
         else {
-          firstRejectedIndex = i;
+          queueFull = true;
+          rejectedIndex = i;
           ARGPRINTLN("Queue full. Index of first rejected tap: ", i);
-          return;
+          break;
         }
         lastOnDur = on;
         lastOffDur = off;
@@ -161,39 +170,64 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
       else {
         // message size is incorrect; clear the queue since the whole message is likely not formatted according to protocol
         tapQ.clear();
-        warningCode = INCORRECT_MSG_SIZE;
+        incorrectMsgSize = true;
         DPRINTLN("Error: incorrect message size.");
-        return;
+        break;
       }
     }
-    else {
+    else { // no settings with this tap, just error check for the row and col
       r = data[i];
       c = data[i+1];
 
       // check the parameters to make sure they're in bounds
       if (r > numRows - 1) {
         r = EMPTY_TAP;
-        warningCode = PARAM_OOB;
-        warningValue = i;
+        if (oobIndexTail < sz) {
+          oobIndices[oobIndexTail] = i;
+          oobIndexTail++;
+        }
         ARGPRINTLN("Error: row index OOB. Index: ", i);
       }
       if (c > numCols - 1) {
         c = EMPTY_TAP;
-        warningCode = PARAM_OOB;
-        warningValue = i + 1;
+        if (oobIndexTail < sz) {
+          oobIndices[oobIndexTail] = i+1;
+          oobIndexTail++;
+        }
         ARGPRINTLN("Error: col index OOB. Index: ", i + 1);
       }
 
       if (!tapQ.isFull()) tapQ.push(r, c, lastOnDur, lastOffDur);
       else {
-        firstRejectedIndex = i;
+        queueFull = true;
+        rejectedIndex = i;
         ARGPRINTLN("Queue full. Index of first rejected tap: ", i);
-        return;
+        break;
       }
 
     }
   }
-  firstRejectedIndex = i; // send the position of the nth + 1 index
+
+  // add warnings to warningQ
+  if (oobIndexTail || queueFull || incorrectMsgSize) {
+    if (xSemaphoreTake(warningQMutex, 0) == pdTRUE) { // set xBlockTime to 0, because if something else is writing a warning msg it's probably more important and we don't want to block here
+      if (oobIndexTail) {
+        addToWarningQ(PARAM_OOB);
+        for (int i = 0; i < oobIndexTail; i++) {
+          addToWarningQ((uint8_t)(oobIndices[i] >> 8));
+          addToWarningQ((uint8_t)oobIndices[i]);
+        }
+      }
+      if (queueFull) {
+        addToWarningQ(QUEUE_FULL);
+        addToWarningQ(rejectedIndex);
+      }
+      if (incorrectMsgSize) addToWarningQ(INCORRECT_MSG_SIZE);
+      EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+      xSemaphoreGive(warningQMutex);
+    }
+  }
+
   return;
 }
 
@@ -236,18 +270,21 @@ void TapHandler::checkDiagnosticReg(uint16_t returnedData, uint8_t id, uint16_t 
           // else DPRINT(", outputs 1-6: OLD");
           // if (!srrAlreadyReset) srrReset(id, diagnosticRegister);
           // srrAlreadyReset = true;
+          // break;
         case 14: 
           ARGPRINT("Fault detected for CS pin ", cs);
           if (diagnosticRegister & (1 << 14)) DPRINT(", outputs 7-10: PSF");
           else DPRINT(", outputs 1-6: PSF");
           if (!srrAlreadyReset) srrReset(id, diagnosticRegister); // TODO - this should set a timer to do an SRR reset so we don't have to wait for the next time this method is called to try again.
           srrAlreadyReset = true;
+          break;
         case 15: 
           ARGPRINT("Fault detected for CS pin ", cs);
           if (diagnosticRegister & (1 << 14)) DPRINT(", outputs 7-10: OC");
           else DPRINT(", outputs 1-6: OC");
           if (!srrAlreadyReset) srrReset(id, diagnosticRegister);
           srrAlreadyReset = true;
+          break;
       }
     }
   }
@@ -335,21 +372,27 @@ void TapHandler::tap() {
     unsigned long balance = 0;
 
     #ifdef OVERTAP_PROTECTION
-      // this section needs to be tested again
+      // this section needs to be tested again, the /10 was added when onDuration changed from tenths of a ms to hundredths of a ms
       unsigned long interval = (millis() - tapperMonitor[r][c].lastMillis) * 10; // why is this multiplied by 10?
       int lastHeat = tapperMonitor[r][c].heat;
 
       unsigned long onDurReduction = (onDuration / 10) * lastHeat / (interval * ATTENUATION_CONSTANT); 
-      if (onDurReduction != 0) {
-        overtappedRowIndex = r;
-        overtappedColIndex = c;
-      }
       unsigned long attenuatedOnDur;
-      if (onDurReduction < (onDuration / 10)) attenuatedOnDur = (onDuration / 10) - onDurReduction; // since we're doing unsigned integer math we have to make sure it doesn't go negative
-      else attenuatedOnDur = 0;
-      
-      unsigned long newOnDuration = (attenuatedOnDur < (onDuration / 10)) ? attenuatedOnDur : (onDuration / 10); // don't tap longer than intended
-      balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
+      if (onDurReduction != 0) {
+        if (onDurReduction < (onDuration / 10)) attenuatedOnDur = (onDuration / 10) - onDurReduction; // since we're doing unsigned integer math we have to make sure it doesn't go negative
+        else attenuatedOnDur = 0;
+        
+        unsigned long newOnDuration = (attenuatedOnDur < (onDuration / 10)) ? attenuatedOnDur : (onDuration / 10); // don't tap longer than intended
+        balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
+
+        if (xSemaphoreTake(warningQMutex, 0) == pdTRUE) { // xBlockTime set to 0 because we don't want to block while tapping
+          addToWarningQ(OVERTAP);
+          addToWarningQ(r);
+          addToWarningQ(c);
+          EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+          xSemaphoreGive(warningQMutex);
+        }
+      }
       
       int newHeat = (onDuration / 10) * ON_DURATION_MULTIPLIER - interval + lastHeat;
       
@@ -359,23 +402,26 @@ void TapHandler::tap() {
     #endif //OVERTAP_PROTECTION
 
     // attenuate the tap if the IMU is hot (which means the board is hot)
-    if (imuTemperature > 62) {
-      balance += onDuration * 7 / 8;
-      onDuration = onDuration / 8;
+    switch (boardOverheatLevel) {
+      case 0:
+        break;
+      case 1:
+        balance += onDuration / 4;
+        onDuration = onDuration * 3 / 4;
+        break;
+      case 2:
+        balance += onDuration / 2;
+        onDuration = onDuration / 2;
+        break;
+      case 3:
+        balance += onDuration * 3 / 4;
+        onDuration = onDuration / 4;
+        break;
+      case 4:
+        balance += onDuration * 7 / 8;
+        onDuration = onDuration / 8;
+        break;
     }
-    else if (imuTemperature >= 58) {
-      balance += onDuration * 3 / 4;
-      onDuration = onDuration / 4;
-    }
-    else if (imuTemperature >= 54) {
-      balance += onDuration / 2;
-      onDuration = onDuration / 2;
-    }
-    else if (imuTemperature >= 50) {
-      balance += onDuration / 4;
-      onDuration = onDuration * 3 / 4;
-    }
-    
 
     driver[rowParentID]->setOutputVal(rowOutputPin);
     driver[rowParentID]->setOutputCNF(rowOutputPin, rowPolarity);
