@@ -2,16 +2,16 @@
 #include "utils.h"
 #include <Arduino.h>
 #include "Adafruit_MAX1704X.h"
-#include "esp_timer.h"
-#include "freertos/FreeRTOS.h"
-#include "freertos/task.h"
-#include "freertos/event_groups.h"
+#include <esp_timer.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
+#include <freertos/event_groups.h>
 #ifdef AUTO_LIGHT_SLEEP
-#include "esp_pm.h"
+#include <esp_pm.h>
 #endif //AUTO_LIGHT_SLEEP
-#include "esp_system.h"
+#include <esp_system.h>
 #include <Wire.h>
-#include "esp_sleep.h"
+#include <esp_sleep.h>
 
 hw_timer_t * tapTimer = NULL; // used for tap offDuration timing
 hw_timer_t * statusTimer = NULL; // used for sending the status messages to central

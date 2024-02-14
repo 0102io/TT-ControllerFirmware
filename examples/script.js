@@ -331,8 +331,10 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
     let offset = 2; // Store data after message type and message ID
 
     for (let i = 0; i <= 2; i++) {
-        const row = (parseInt(document.getElementById(`rowIndex${i}`).value));
-        const col = parseInt(document.getElementById(`colIndex${i}`).value);
+        const anodeCS = (parseInt(document.getElementById(`anodeCS${i}`).value));
+        const anodeOutputPin = (parseInt(document.getElementById(`anodeOutputPin${i}`).value));
+        const cathodeCS = parseInt(document.getElementById(`cathodeCS${i}`).value);
+        const cathodeOutputPin = parseInt(document.getElementById(`cathodeOutputPin${i}`).value);
         const onDur = parseInt(document.getElementById(`onDur${i}`).value);
         const offDur = parseInt(document.getElementById(`offDur${i}`).value);
 
@@ -341,19 +343,16 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
         const offDurMSB = (offDur >> 8) & 0xFF;
         const offDurLSB = offDur & 0xFF;
 
-        // Write the first element with the settings
-        arr[offset++] = row | (1 << 7); // to indicate we're sending settings, the first bit of the row byte needs to be 1
-        arr[offset++] = col;
-        arr[offset++] = onDurMSB;
-        arr[offset++] = onDurLSB;
-        arr[offset++] = offDurMSB;
-        arr[offset++] = offDurLSB;
-
         // Write the additional elements with just row and col, which will keep the last sent settings
         const qty = parseInt(document.getElementById(`qty${i}`).value);
-        for (let j = 1; j < qty; j++) {
-            arr[offset++] = row;
-            arr[offset++] = col;
+        for (let j = 0; j < qty; j++) {
+            // Write the first element with the settings
+            arr[offset++] = onDurMSB;
+            arr[offset++] = onDurLSB;
+            arr[offset++] = offDurMSB;
+            arr[offset++] = offDurLSB;
+            arr[offset++] = (anodeCS << 4) | anodeOutputPin;
+            arr[offset++] = (cathodeCS << 4) | cathodeOutputPin;
         }
     }
     sendMessage(arr, "TAP_OUT");

@@ -6,7 +6,7 @@
 #include <SPI.h>
 #include <array>
 
-#define EMPTY_TAP 127 // if we try to tap somewhere out of bounds
+#define EMPTY_TAP 15 // if we try to tap somewhere out of bounds
 #define NO_TAPOUT_ID 0 // if we don't have a tapout pattern that we're currently using
 
 /*
@@ -16,6 +16,15 @@ don't drive them too hard. See description for OVERTAP_PROTECTION for more info.
 struct TapperMonitor {
     unsigned long lastMillis;
     int heat;
+};
+
+struct TapSettings {
+    uint8_t anodeCS;
+    uint8_t cathodeCS;
+    uint8_t anodeOutputPin;
+    uint8_t cathodeOutputPin;
+    unsigned long onDuration;
+    unsigned long offDuration;
 };
 
 /*
@@ -29,10 +38,7 @@ private:
     uint16_t size;
     uint16_t front;
     uint16_t rear;
-    std::array<uint8_t, MAX_QUEUE_SIZE> row;
-    std::array<uint8_t, MAX_QUEUE_SIZE> col;
-    std::array<uint16_t, MAX_QUEUE_SIZE> onDur;
-    std::array<uint16_t, MAX_QUEUE_SIZE> offDur;
+    std::array<TapSettings, MAX_QUEUE_SIZE> taps;
 
 public:
     TapQueue() : size(0), front(0), rear(0) {}
@@ -40,8 +46,8 @@ public:
     bool isEmpty();
     uint16_t headroom();
     uint16_t getSize();
-    bool push(uint8_t r, uint8_t c, uint16_t on, uint16_t off);
-    std::array<uint8_t, 6> pop();
+    bool push(TapSettings newTap);
+    TapSettings pop();
     void clear();
 };
 
