@@ -6,7 +6,7 @@
 #include <SPI.h>
 #include <array>
 
-#define EMPTY_TAP 99 // if we try to tap somewhere out of bounds
+#define EMPTY_TAP 127 // if we try to tap somewhere out of bounds
 #define NO_TAPOUT_ID 0 // if we don't have a tapout pattern that we're currently using
 
 /*

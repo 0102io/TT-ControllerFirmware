@@ -129,7 +129,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         off = (data[i+4] << 8) | data[i+5];
 
         // check the parameters to make sure they're in bounds
-        if (r > numRows - 1) {
+        if (r > numRows - 1 && r != EMPTY_TAP) {
           r = EMPTY_TAP;
           if (oobIndexTail < sz) {
             oobIndices[oobIndexTail] = i;
@@ -137,7 +137,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
           }
           ARGPRINTLN("Error: row index OOB. Index: ", i);
         }
-        if (c > numCols - 1) {
+        if (c > numCols - 1 && c != EMPTY_TAP) {
           c = EMPTY_TAP;
           if (oobIndexTail < sz) {
             oobIndices[oobIndexTail] = i+1;
@@ -180,7 +180,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
       c = data[i+1];
 
       // check the parameters to make sure they're in bounds
-      if (r > numRows - 1) {
+      if (r > numRows - 1 && r != EMPTY_TAP) {
         r = EMPTY_TAP;
         if (oobIndexTail < sz) {
           oobIndices[oobIndexTail] = i;
@@ -188,7 +188,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         }
         ARGPRINTLN("Error: row index OOB. Index: ", i);
       }
-      if (c > numCols - 1) {
+      if (c > numCols - 1 && c != EMPTY_TAP) {
         c = EMPTY_TAP;
         if (oobIndexTail < sz) {
           oobIndices[oobIndexTail] = i+1;
