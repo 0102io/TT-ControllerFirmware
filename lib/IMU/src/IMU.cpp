@@ -67,45 +67,14 @@ void IMU::poll()
   sox.getEvent(&accel, &gyro, &temp);
 
   // multiply data by 1k to preserve 3 decimal places and convert into ints
-  float2int32[0] = (int32_t)(accel.acceleration.x * 1000);
-  float2int32[1] = (int32_t)(accel.acceleration.y * 1000);
-  float2int32[2] = (int32_t)(accel.acceleration.z * 1000);
-  float2int32[3] = (int32_t)(gyro.gyro.x * 1000);
-  float2int32[4] = (int32_t)(gyro.gyro.y * 1000);
-  float2int32[5] = (int32_t)(gyro.gyro.z * 1000);
-  tempInt = temp.temperature * 10; // keep one decimal place
-  updateBoardTempLevel(tempInt/10); // update the temperature state so we can attenuate the tap if we're running hot
-
-  // break data into bytes
-  dataAsBytes[0] = (float2int32[0] >> 24) & 0xFF;
-  dataAsBytes[1] = (float2int32[0] >> 16) & 0xFF;
-  dataAsBytes[2] = (float2int32[0] >> 8) & 0xFF;
-  dataAsBytes[3] = float2int32[0] & 0xFF;
-  dataAsBytes[4] = (float2int32[1] >> 24) & 0xFF;
-  dataAsBytes[5] = (float2int32[1] >> 16) & 0xFF;
-  dataAsBytes[6] = (float2int32[1] >> 8) & 0xFF;
-  dataAsBytes[7] = float2int32[1] & 0xFF;
-  dataAsBytes[8] = (float2int32[2] >> 24) & 0xFF;
-  dataAsBytes[9] = (float2int32[2] >> 16) & 0xFF;
-  dataAsBytes[10] = (float2int32[2] >> 8) & 0xFF;
-  dataAsBytes[11] = float2int32[2] & 0xFF;
-
-  dataAsBytes[12] = (float2int32[3] >> 24) & 0xFF;
-  dataAsBytes[13] = (float2int32[3] >> 16) & 0xFF;
-  dataAsBytes[14] = (float2int32[3] >> 8) & 0xFF;
-  dataAsBytes[15] = float2int32[3] & 0xFF;
-  dataAsBytes[16] = (float2int32[4] >> 24) & 0xFF;
-  dataAsBytes[17] = (float2int32[4] >> 16) & 0xFF;
-  dataAsBytes[18] = (float2int32[4] >> 8) & 0xFF;
-  dataAsBytes[19] = float2int32[4] & 0xFF;
-  dataAsBytes[20] = (float2int32[5] >> 24) & 0xFF;
-  dataAsBytes[21] = (float2int32[5] >> 16) & 0xFF;
-  dataAsBytes[22] = (float2int32[5] >> 8) & 0xFF;
-  dataAsBytes[23] = float2int32[5] & 0xFF;
-  dataAsBytes[24] = (tempInt >> 8) & 0xFF;
-  dataAsBytes[25] = tempInt & 0xFF;
-
-  dataPtr = dataAsBytes;
+  imuData.accelX = (int32_t)(accel.acceleration.x * 1000);
+  imuData.accelY = (int32_t)(accel.acceleration.y * 1000);
+  imuData.accelZ = (int32_t)(accel.acceleration.z * 1000);
+  imuData.gyroX = (int32_t)(gyro.gyro.x * 1000);
+  imuData.gyroY = (int32_t)(gyro.gyro.y * 1000);
+  imuData.gyroZ = (int32_t)(gyro.gyro.z * 1000);
+  imuData.temperature = (uint16_t)(temp.temperature * 10); // keep one decimal place
+  updateBoardTempLevel(imuData.temperature/10); // update the temperature state so we can attenuate the tap if we're running hot
 
   return;
 }

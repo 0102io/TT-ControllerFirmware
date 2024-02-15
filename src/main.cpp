@@ -33,32 +33,33 @@ void statusNotification(void * parameter) {
       statusArray[3] = tapHandlerStatus[2]; // tapQ.headroom LSB
 
       imu.poll();
-      statusArray[4] = imu.dataPtr[0]; // accelX MSB
-      statusArray[5] = imu.dataPtr[1]; // accelX
-      statusArray[6] = imu.dataPtr[2]; // accelX
-      statusArray[7] = imu.dataPtr[3]; // accelX LSB
-      statusArray[8] = imu.dataPtr[4]; // accelY MSB
-      statusArray[9] = imu.dataPtr[5]; // accelY
-      statusArray[10] = imu.dataPtr[6]; // accelY
-      statusArray[11] = imu.dataPtr[7]; // accelY LSB
-      statusArray[12] = imu.dataPtr[8]; // accelZ MSB
-      statusArray[13] = imu.dataPtr[9]; // accelZ
-      statusArray[14] = imu.dataPtr[10]; // accelZ
-      statusArray[15] = imu.dataPtr[11]; // accelZ LSB
-      statusArray[16] = imu.dataPtr[12]; // gyroX MSB
-      statusArray[17] = imu.dataPtr[13]; // gyroX
-      statusArray[18] = imu.dataPtr[14]; // gyroX
-      statusArray[19] = imu.dataPtr[15]; // gyroX LSB
-      statusArray[20] = imu.dataPtr[16]; // gyroY MSB
-      statusArray[21] = imu.dataPtr[17]; // gyroY
-      statusArray[22] = imu.dataPtr[18]; // gyroY
-      statusArray[23] = imu.dataPtr[19]; // gyroY LSB
-      statusArray[24] = imu.dataPtr[20]; // gyroZ MSB
-      statusArray[25] = imu.dataPtr[21]; // gyroZ
-      statusArray[26] = imu.dataPtr[22]; // gyroZ
-      statusArray[27] = imu.dataPtr[23]; // gyroZ LSB
-      statusArray[28] = imu.dataPtr[24]; // temperature * 10 (MSB)
-      statusArray[29] = imu.dataPtr[25]; // temperature * 10 (LSB)
+      statusArray[4] = (imu.imuData.accelX >> 24) & 0xFF;
+      statusArray[5] = (imu.imuData.accelX >> 16) & 0xFF;
+      statusArray[6] = (imu.imuData.accelX >> 8) & 0xFF;
+      statusArray[7] = imu.imuData.accelX & 0xFF;
+      statusArray[8] = (imu.imuData.accelY >> 24) & 0xFF;
+      statusArray[9] = (imu.imuData.accelY >> 16) & 0xFF;
+      statusArray[10] = (imu.imuData.accelY >> 8) & 0xFF;
+      statusArray[11] = imu.imuData.accelY & 0xFF;
+      statusArray[12] = (imu.imuData.accelZ >> 24) & 0xFF;
+      statusArray[13] = (imu.imuData.accelZ >> 16) & 0xFF;
+      statusArray[14] = (imu.imuData.accelZ >> 8) & 0xFF;
+      statusArray[15] = imu.imuData.accelZ & 0xFF;
+      statusArray[16] = (imu.imuData.gyroX >> 24) & 0xFF;
+      statusArray[17] = (imu.imuData.gyroX >> 16) & 0xFF;
+      statusArray[18] = (imu.imuData.gyroX >> 8) & 0xFF;
+      statusArray[19] = imu.imuData.gyroX & 0xFF;
+      statusArray[20] = (imu.imuData.gyroY >> 24) & 0xFF;
+      statusArray[21] = (imu.imuData.gyroY >> 16) & 0xFF;
+      statusArray[22] = (imu.imuData.gyroY >> 8) & 0xFF;
+      statusArray[23] = imu.imuData.gyroY & 0xFF;
+      statusArray[24] = (imu.imuData.gyroZ >> 24) & 0xFF;
+      statusArray[25] = (imu.imuData.gyroZ >> 16) & 0xFF;
+      statusArray[26] = (imu.imuData.gyroZ >> 8) & 0xFF;
+      statusArray[27] = imu.imuData.gyroZ & 0xFF;
+      statusArray[28] = (imu.imuData.temperature >> 8) & 0xFF;
+      statusArray[29] = imu.imuData.temperature & 0xFF;
+
       if (xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE) {
         notifyCentral(STATUS_UPDATE, statusArray);
         xSemaphoreGive(notifyMutex);
