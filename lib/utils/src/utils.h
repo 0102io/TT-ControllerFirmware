@@ -3,6 +3,7 @@
 
 #include <vector>
 #include "configuration.h"
+#include <Preferences.h>
 
 // TODO byte codes should be in comms_manager.h instead
 // BLE byte code received message types
@@ -10,6 +11,7 @@
 #define GET_DEVICE_INFO 2
 #define CANCEL_AND_TAP 3
 #define UPDATE_STATUS_FREQUENCY 4
+#define CHANGE_DEFAULT_SUBSTRATE 5
 
 // BLE byte code sent message types
 #define STATUS_UPDATE 1
@@ -112,6 +114,10 @@ extern volatile bool otaProceed;
 
 extern std::vector<uint8_t> macAddress;
 extern std::vector<uint8_t> deviceInfo;
+extern Preferences preferences;
+extern uint8_t substrateType;
+extern uint8_t substrateVMajor;
+extern uint8_t substrateVMinor;
 
 extern uint8_t batteryPercent;
 extern float batteryVoltage;

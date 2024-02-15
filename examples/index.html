@@ -29,10 +29,16 @@
             <button id="getDeviceInfoBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2 mr-2">Get Device Info</button>
             <button id="uploadCodeBtn" class="bg-blue-500 text-white w-40 h-10 rounded mb-2">Upload Firmware</button>
         </div> 
+        <button id="changeSubstrateBtn" class="bg-blue-500 text-white w-40 h-10 rounded">Change Substrate</button>
+        <div class="flex items-center mb-2 pt-2 pb-1">
+          <label class="ml-2">Substrate Type: <input id="substrateType" type="number" min="0" max="2" class="w-12 rounded border" value="1"></label>
+          <label class="ml-2">Version Major: <input id="substrateVMajor" type="number" min="0" max="32" class="w-12 rounded border" value="12"></label>
+          <label class="ml-2">Version Minor: <input id="substrateVMinor" type="number" min="0" max="32" class="w-12 rounded border" value="3"></label>
+        </div>
         <button id="tapOutBtn" class="bg-blue-500 text-white w-40 h-10 rounded">TAP_OUT</button>
         <div class="flex items-center mb-2 pt-2 pb-1">
           <label class="ml-2">Identifier: <input id="tapoutID" type="number" min="1" max="255" class="w-12 rounded border" value="2"></label>
-      </div>
+        </div>
         <div class="flex items-center mb-2 pt-2 pb-1">
             <label class="ml-2">ACS: <input id="anodeCS0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
             <label class="ml-2">AOP: <input id="anodeOutputPin0" type="number" min="0" max="32" class="w-12 rounded border" value="0"></label>
@@ -78,7 +84,6 @@
           <div>Temperature: <span id="temp">-</span> C</div>
           <div>Gyro Z: <span id="gyroz">-</span></div>
         </div>
-        
     </div>
     <div id="consoleLog" class="console-log mx-auto mt-4 p-4 bg-white w-3/4 rounded shadow">
     </div>

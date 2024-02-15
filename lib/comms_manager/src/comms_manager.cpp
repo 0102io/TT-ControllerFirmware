@@ -83,27 +83,43 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
           deviceInfo[3] = macAddress[3];
           deviceInfo[4] = macAddress[4];
           deviceInfo[5] = macAddress[5];
-          deviceInfo[6] = version[0];
-          deviceInfo[7] = version[1];
-          deviceInfo[8] = version[2];
-          deviceInfo[9] = version[3];
-          deviceInfo[10] = version[4];
-          deviceInfo[11] = version[5];
-          deviceInfo[12] = version[6];
-          deviceInfo[13] = version[7];
+          deviceInfo[6] = HARDWARE_VERSION_MAJOR;
+          deviceInfo[7] = HARDWARE_VERSION_MINOR;
+          deviceInfo[8] = FIRMWARE_VERSION_MAJOR;
+          deviceInfo[9] = FIRMWARE_VERSION_MINOR;
+          deviceInfo[10] = FIRMWARE_VERSION_PATCH;
+          deviceInfo[11] = substrateType;
+          deviceInfo[12] = substrateVMajor;
+          deviceInfo[13] = substrateVMinor;
           deviceInfo[14] = (uint8_t)(onDur_max >> 8);
           deviceInfo[15] = (uint8_t)(onDur_max);
           notifyCentral(DEVICE_INFO, deviceInfo);
           break;
         case UPDATE_STATUS_FREQUENCY:
           DPRINTLN("Message type: UPDATE_STATUS_FREQUENCY");
-          if (msgSize > 1) {
+          if (msgSize == 2) {
             disableStatusTimer();
             uint8_t pollingFrequency = rxValue[1];
             if (pollingFrequency == 0) pollingFrequency = 1; // right now we need status messages to be sent because that causes the board temp to be checked regularly
             if (pollingFrequency > MAX_TRANSMISSION_FREQUENCY) pollingFrequency = MAX_TRANSMISSION_FREQUENCY;
             statusNotificationFreq = pollingFrequency;
             // TODO also tell the IMU to use the nearest sampling frequency
+          }
+          break;
+        case CHANGE_DEFAULT_SUBSTRATE:
+          DPRINTLN("Message type: CHANGE_DEFAULT_SUBSTRATE");
+          if (msgSize == 4) {
+            substrateType = rxValue[1];
+            substrateVMajor = rxValue[2];
+            substrateVMinor = rxValue[3];
+            preferences.begin("saved-settings", false);
+            preferences.putUChar("substrateType", substrateType);
+            preferences.putUChar("substrateVMajor", substrateVMajor);
+            preferences.putUChar("substrateVMinor", substrateVMinor);
+            preferences.end();
+            ARGPRINT("Substrate changed to type: ", substrateType);
+            ARGPRINT(" v", substrateVMajor);
+            ARGPRINTLN(".", substrateVMinor);
           }
           break;
         default:
@@ -171,15 +187,25 @@ Creates the BLE service and starts advertising. It gets passed the TapHandler ob
 */
 void setupBLE(TapHandler* tapHandler) {
 
-  BLEDevice::init(DEVICE_NAME);
+  std::__cxx11::string bleName;
+  switch (substrateType) {
+    case PATCH:
+      bleName = "TAPPY PATCH";
+      break;
+    case PALM:
+      bleName = "TAPPY PALM";
+      break;
+    default:
+      bleName = "TAPPY CONTROLLER";
+      break;
+  }
+  BLEDevice::init(bleName);
   BLEDevice::setMTU(BLE_MTU);
   pServer = BLEDevice::createServer();
   BLEService *pService = pServer->createService(SERVICE_UUID);
   pRxCharacteristic = pService->createCharacteristic(
                       CHARACTERISTIC_UUID_RX,
-                      // BLECharacteristic::PROPERTY_READ |
-                      BLECharacteristic::PROPERTY_WRITE // | 
-                      // BLECharacteristic::PROPERTY_NOTIFY
+                      BLECharacteristic::PROPERTY_WRITE
                       );
   pRxCharacteristic->addDescriptor(new BLE2902());
   pRxCharacteristic->setCallbacks(new fromCentralCallbacks(tapHandler));

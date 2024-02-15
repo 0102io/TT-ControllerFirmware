@@ -8,6 +8,7 @@ const OTA_RX_CHARACTERISTIC_UUID = "c8659211-af91-4ad3-a995-a58d6fd26145";
 const SentMessageType = {
     TAP_OUT: 1,
     GET_DEVICE_INFO: 2,
+    CHANGE_DEFAULT_SUBSTRATE: 5,
 };
 
 const ReceivedMessageType = {
@@ -20,6 +21,12 @@ const ReceivedMessageType = {
     OTA_TIMEOUT: 61,
 };  
 
+const SubstrateType = {
+    PATCH: 1,
+    PALM: 2,
+}
+
+let currentSubstrate = SubstrateType.PATCH;
 let bleDevice = null;
 let bleServer = null;
 let rxCharacteristic = null;
@@ -253,7 +260,19 @@ function handleNotifications(event) {
             additionalDataString = "Serial Number: " + serialNumberBytes.join(":");
             additionalDataString += `, Controller Version: ${additionalData[6]}.${additionalData[7]}, `;
             additionalDataString += `Firmware Version: ${additionalData[8]}.${additionalData[9]}.${additionalData[10]}, `;
-            additionalDataString += `Connected Board: ${additionalData[11]}, `;
+            let connectedBoard = "";
+            switch (additionalData[11]) {
+                case SubstrateType.PALM:
+                    connectedBoard = "PALM";
+                    break;
+                case SubstrateType.PATCH:
+                    connectedBoard = "PATCH";
+                    break;
+                default:
+                    connectedBoard = "UNKNOWN";
+                    break;
+            }
+            additionalDataString += `Connected Board: ${connectedBoard}, `;
             additionalDataString += `Version: ${additionalData[12]}.${additionalData[13]}`;
             break;
         default:
@@ -285,6 +304,18 @@ function getDeviceInfo() {
     const dataView = new DataView(buffer);
     dataView.setUint8(0, SentMessageType.GET_DEVICE_INFO);
     sendMessage(buffer, "GET_DEVICE_INFO");
+}
+
+function changeSubstrate() {
+    const substrateType = (parseInt(document.getElementById(`substrateType`).value));
+    const substrateVMajor = (parseInt(document.getElementById(`substrateVMajor`).value));
+    const substrateVMinor = (parseInt(document.getElementById(`substrateVMinor`).value));
+    const arr = new Uint8Array(4);
+    arr[0] = SentMessageType.CHANGE_DEFAULT_SUBSTRATE;
+    arr[1] = substrateType;
+    arr[2] = substrateVMajor;
+    arr[3] = substrateVMinor;
+    sendMessage(arr, "CHANGE_SUBSTRATE_TYPE");
 }
 
 function appendToConsole(message, additionalMessage = null) {
@@ -361,3 +392,4 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
 document.getElementById("clearConsoleBtn").addEventListener("click", clearConsole);
 document.getElementById("uploadCodeBtn").addEventListener("click", uploadOTA);
 document.getElementById("getDeviceInfoBtn").addEventListener("click", getDeviceInfo);
+document.getElementById("changeSubstrateBtn").addEventListener("click", changeSubstrate);

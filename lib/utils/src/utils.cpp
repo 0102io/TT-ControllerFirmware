@@ -27,6 +27,10 @@ uint8_t statusNotificationFreq;
 
 std::vector<uint8_t> macAddress(6);
 std::vector<uint8_t> deviceInfo(16);
+Preferences preferences;
+uint8_t substrateType;
+uint8_t substrateVMajor;
+uint8_t substrateVMinor;
 
 EventGroupHandle_t tapEventGroup;
 EventGroupHandle_t notificationEventGroup;
@@ -61,6 +65,20 @@ void setupUtils() {
   for (int i = 0; i < 6; i++) {
     macAddress[i] = mac[i];
   }
+
+  preferences.begin("saved-settings", false);
+  substrateType = preferences.getUChar("substrateType", 0);
+  substrateVMajor = preferences.getUChar("substrateVMajor", 0);
+  substrateVMinor = preferences.getUChar("substrateVMinor", 0);
+  if (!substrateType) {
+    preferences.putUChar("substrateType", DEFAULT_SUBSTRATE);
+    preferences.putUChar("substrateVMajor", DEFAULT_SUBSTRATE_VMAJOR);
+    preferences.putUChar("substrateVMinor", DEFAULT_SUBSTRATE_VMINOR);
+    substrateType = DEFAULT_SUBSTRATE;
+    substrateVMajor = DEFAULT_SUBSTRATE_VMAJOR;
+    substrateVMinor = DEFAULT_SUBSTRATE_VMINOR;
+  }
+  preferences.end();
 
   #ifdef CPU_CLK_FREQ_OVERIDE
     setCpuFrequencyMhz(CPU_CLK_FREQ_OVERIDE);

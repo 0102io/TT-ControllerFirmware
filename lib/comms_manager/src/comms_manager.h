@@ -10,7 +10,6 @@
 
 // UUIDs for BLE service and characteristic
 #define SERVICE_UUID "4fafc201-1fb5-459e-8fcc-c5c9c331914b"
-#define DEVICE_NAME "TAPPY CONTROLLER"
 #define FULL_PACKET 512
 
 // Characteristic for central --> controller communication
