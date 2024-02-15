@@ -25,6 +25,13 @@ void IMU::setupIMU()
 
   DPRINTLN("LSM6DSOX connected");
 
+  accelXptr = (uint8_t*)&accelX;
+  accelYptr = (uint8_t*)&accelY;
+  accelZptr = (uint8_t*)&accelZ;
+  gyroXptr = (uint8_t*)&gyroZ;
+  gyroYptr = (uint8_t*)&gyroZ;
+  gyroZptr = (uint8_t*)&gyroZ;
+
   // sox.setAccelRange(LSM6DS_ACCEL_RANGE_2_G); // used in adafruit library example
   sox.setAccelRange(LSM6DS_ACCEL_RANGE_4_G);
   // sox.setAccelRange(LSM6DS_ACCEL_RANGE_8_G);
@@ -67,14 +74,14 @@ void IMU::poll()
   sox.getEvent(&accel, &gyro, &temp);
 
   // multiply data by 1k to preserve 3 decimal places and convert into ints
-  imuData.accelX = (int32_t)(accel.acceleration.x * 1000);
-  imuData.accelY = (int32_t)(accel.acceleration.y * 1000);
-  imuData.accelZ = (int32_t)(accel.acceleration.z * 1000);
-  imuData.gyroX = (int32_t)(gyro.gyro.x * 1000);
-  imuData.gyroY = (int32_t)(gyro.gyro.y * 1000);
-  imuData.gyroZ = (int32_t)(gyro.gyro.z * 1000);
-  imuData.temperature = (uint16_t)(temp.temperature * 10); // keep one decimal place
-  updateBoardTempLevel(imuData.temperature/10); // update the temperature state so we can attenuate the tap if we're running hot
+  accelX = accel.acceleration.x;
+  accelY = accel.acceleration.y;
+  accelZ = accel.acceleration.z;
+  gyroX = gyro.gyro.x;
+  gyroY = gyro.gyro.y;
+  gyroZ = gyro.gyro.z;
+  temperature = (uint16_t)(temp.temperature * 10); // keep one decimal place
+  updateBoardTempLevel(temperature/10); // update the temperature state so we can attenuate the tap if we're running hot
 
   return;
 }

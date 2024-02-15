@@ -155,7 +155,6 @@ function disconnect() {
         bleDevice.gatt.disconnect();
     }
     toggleConnectButton(false);
-    toggleIMUStreamButton(false)
 }
 
 function toggleConnectButton(isConnected) {
@@ -212,14 +211,19 @@ function handleNotifications(event) {
             let tapHandlerStatus = additionalData.slice(1, 4);
             let tapOutID = tapHandlerStatus[0];
             let tapQHeadroom = (tapHandlerStatus[1] << 8) | tapHandlerStatus[2];
-            let imuData = additionalData.slice(4, 30);
-            let accelX = (imuData[0] << 24 | imuData[1] << 16 | imuData[2] << 8 | imuData[3]) / 1000;
-            let accelY = (imuData[4] << 24 | imuData[5] << 16 | imuData[6] << 8 | imuData[7]) / 1000;
-            let accelZ = (imuData[8] << 24 | imuData[9] << 16 | imuData[10] << 8 | imuData[11]) / 1000;
-            let gyroX = (imuData[12] << 24 | imuData[13] << 16 | imuData[14] << 8 | imuData[15]) / 1000;
-            let gyroY = (imuData[16] << 24 | imuData[17] << 16 | imuData[18] << 8 | imuData[19]) / 1000;
-            let gyroZ = (imuData[20] << 24 | imuData[21] << 16 | imuData[22] << 8 | imuData[23]) / 1000;
-            let temperature = (imuData[24] << 8 | imuData[25]) / 10;
+            let imuData = additionalData.slice(4, 28);
+            let imuDataBytes = new Uint8Array(imuData);
+            let dataArray = new Float32Array (imuDataBytes.buffer);
+
+            let accelX = dataArray[0];
+            let accelY = dataArray[1];
+            let accelZ = dataArray[2];
+            let gyroX = dataArray[3];
+            let gyroY = dataArray[4];
+            let gyroZ = dataArray[5];
+            let imuTemp = additionalData.slice(28, 30);
+            let temperature = (imuTemp[0] << 8 | imuTemp[1]) / 10;
+
 
             document.getElementById("tid").textContent = tapOutID.toFixed(0);
             document.getElementById("batteryPercent").textContent = batteryPercent.toFixed(0);
