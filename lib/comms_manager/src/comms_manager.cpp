@@ -120,6 +120,8 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
             ARGPRINT("Substrate changed to type: ", substrateType);
             ARGPRINT(" v", substrateVMajor);
             ARGPRINTLN(".", substrateVMinor);
+            delay(500);
+            esp_restart();
           }
           break;
         default:
