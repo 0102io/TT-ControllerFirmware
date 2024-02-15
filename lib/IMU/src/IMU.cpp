@@ -17,8 +17,9 @@ void IMU::setupIMU()
   DPRINTLN("Setting up IMU");
 
   if (!sox.begin_I2C(I2C_ADDRESS, &Wire1)) {
-    while (1) {
-      delay(10);
+    delay(100);
+    if (!sox.begin_I2C(I2C_ADDRESS, &Wire1)) {
+      DPRINTLN("Couldn't connect to IMU");
     }
   }
 
