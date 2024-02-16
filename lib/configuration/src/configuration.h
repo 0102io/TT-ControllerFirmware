@@ -3,7 +3,7 @@
 #include <vector>
 #include <Arduino.h>
 
-#define DEBUG // uncomment this line to get serial print statements on the USB bus
+#define DEBUG // uncomment this line to get serial print statements on the USB bus; it also disables auto light sleep since serial doesn't work with that
 // #define STRESS_TEST // uncomment this line to make the controller repeatedly tap the pattern in stressTestVect, using init settings in configuration.cpp
 
 #define FIRMWARE_VERSION_MAJOR 0
