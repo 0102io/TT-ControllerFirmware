@@ -52,12 +52,11 @@ bool socChanged = false;
 Set up timers, auto light sleep, input/output pins, etc.
 */
 void setupUtils() {
-  Serial.begin(115200);
-  delay(3000); // BUG without this delay we miss a bunch of early print statements
+  
   #ifdef DEBUG
-  DPRINTLN("Debugging is enabled.");
-  #else
-    Serial.println("Debugging is disabled.");
+    Serial.begin(115200);
+    delay(2000); // wait to make sure we actually get the first print statement below
+    DPRINTLN("Debugging is enabled.");
   #endif
 
   uint8_t mac[6];
@@ -101,19 +100,6 @@ void setupUtils() {
 
   inactivityTimer = timerBegin(3, CPU_CLK_FREQ / 1000000, true);
   timerAttachInterrupt(inactivityTimer, &deepSleep, true);
-
-  #ifdef AUTO_LIGHT_SLEEP
-    // from: https://community.platformio.org/t/esp32-auto-light-sleep-arduino-idf/13676/4 
-    esp_pm_config_esp32s3_t PmConfig;
-    PmConfig.max_freq_mhz = 80;
-    PmConfig.min_freq_mhz = 80; // 80MHz is the min clock frequency we can use with bluetooth
-    PmConfig.light_sleep_enable = true;
-    esp_err_t err = esp_pm_configure(&PmConfig);
-
-    if (err == ESP_OK) blink(1, 100, HEX_GREEN);
-    else if (err == ESP_ERR_INVALID_ARG) blink(1, 100, HEX_YELLOW);
-    else if (err == ESP_ERR_NOT_SUPPORTED) blink(1, 100, HEX_RED);
-  #endif //AUTO_LIGHT_SLEEP
 
   #if VERSION_IS(12, 4)
     pinMode(CURRENT_SENSE_PIN, INPUT);
@@ -170,48 +156,6 @@ void setupUtils() {
     pinMode(WDI_PIN, OUTPUT);
     digitalWrite(WDI_PIN, LOW);
     setupBattery();
-  #elif VERSION_IS(12, 2)
-    pinMode(CURRENT_SENSE_PIN, INPUT);
-    digitalWrite(LED, HIGH);
-    pinMode(LEDG, OUTPUT);
-    digitalWrite(LEDG, HIGH);
-    pinMode(LEDB, OUTPUT);
-    digitalWrite(LEDB, HIGH);
-    pinMode(USER_BUTTON, INPUT_PULLUP);
-    attachInterrupt(digitalPinToInterrupt(USER_BUTTON), interactButtonPress, FALLING);
-    setupBattery();
-    pinMode(REG12V_EN_PIN, OUTPUT);
-    #ifdef HBEN_DISABLED_INTERRUPT
-      pinMode(HBEN_INTERRUPT_PIN, INPUT);
-      attachInterrupt(digitalPinToInterrupt(HBEN_INTERRUPT_PIN), hbDisabledISR, FALLING);
-    #endif
-    pinMode(IMU_INT1_PIN, INPUT);
-    pinMode(IMU_INT2_PIN, INPUT);
-    #ifndef REGULATOR_PWR_SAVE
-      digitalWrite(REG12V_EN_PIN, HIGH);
-    #endif
-    pinMode(BATT_MONITOR, INPUT);
-  #elif VERSION_IS(12, 1)
-    pinMode(CURRENT_SENSE_PIN, INPUT);
-    pinMode(39, INPUT); // program doesn't work without this (v12b has the current sensor output connected here, and the non floating voltage on this pin seems to cause an issue for the esp)
-    digitalWrite(LED, HIGH);
-    pinMode(LEDG, OUTPUT);
-    digitalWrite(LEDG, HIGH);
-    pinMode(LEDB, OUTPUT);
-    digitalWrite(LEDB, HIGH);
-    pinMode(USER_BUTTON, INPUT);
-    attachInterrupt(digitalPinToInterrupt(USER_BUTTON), interactButtonPress, FALLING);
-    pinMode(EXT_PIN, INPUT_PULLUP);
-    pinMode(REG12V_EN_PIN, OUTPUT);
-    #ifdef HBEN_DISABLED_INTERRUPT
-      pinMode(HBEN_INTERRUPT_PIN, INPUT);
-      attachInterrupt(digitalPinToInterrupt(HBEN_INTERRUPT_PIN), hbDisabledISR, FALLING);
-    #endif
-    pinMode(IMU_INT1_PIN, INPUT);
-    pinMode(IMU_INT2_PIN, INPUT);
-    #ifndef REGULATOR_PWR_SAVE
-      digitalWrite(REG12V_EN_PIN, HIGH);
-    #endif
   #elif VERSION_IS(11, 2)
     digitalWrite(LED, LOW);
     #ifdef HBEN_DISABLED_INTERRUPT
@@ -220,33 +164,21 @@ void setupUtils() {
     #endif
     pinMode(6, OUTPUT);
     digitalWrite(6, HIGH); // for testing OC interrupt
-  #elif VERSION_IS(12, 0)
-    digitalWrite(LED, LOW);
-    pinMode(BOOT_MODE, INPUT);
-    // Request 12V from USB power supply, and if we can't get that request 9V
-    // V12a doesn't have voltage divider for feedback, needs to be added to v12b; for now just request a voltage. The PG LED will indicate if we receive it or not.
-    /*
-    USB PD truth table
-    CFG1	|  CFG3	| Voltage
-      1 	|   -	  |   5V
-      0 	|   0	  |   9V
-      0		|   1	  |   12V
-    */ 
-    pinMode(CFG1, OUTPUT);
-    pinMode(CFG3, OUTPUT);
-    pinMode(INDICATOR_12V, OUTPUT);
-    pinMode(INDICATOR_9V, OUTPUT);
-
-    // Request 12V
-    digitalWrite(CFG1, LOW);
-    digitalWrite(CFG3, HIGH);
-    digitalWrite(INDICATOR_12V, HIGH);
-
-    // Request 9V
-    // digitalWrite(CFG1, LOW);
-    // digitalWrite(CFG3, LOW);
-    // digitalWrite(INDICATOR_9V, HIGH);
   #endif
+  
+  #ifdef AUTO_LIGHT_SLEEP
+    // from: https://community.platformio.org/t/esp32-auto-light-sleep-arduino-idf/13676/4 
+    esp_pm_config_esp32s3_t PmConfig;
+    PmConfig.max_freq_mhz = 80;
+    PmConfig.min_freq_mhz = 80; // 80MHz is the min clock frequency we can use with bluetooth
+    PmConfig.light_sleep_enable = true;
+    esp_err_t err = esp_pm_configure(&PmConfig);
+
+    // if (err == ESP_OK) blink(1, 100, HEX_GREEN);
+    // else if (err == ESP_ERR_INVALID_ARG) blink(1, 100, HEX_YELLOW);
+    // else if (err == ESP_ERR_NOT_SUPPORTED) blink(1, 100, HEX_RED);
+  #endif //AUTO_LIGHT_SLEEP
+
   esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(USER_BUTTON), LOW);
   setInactivityTimer(true);
   warningQMutex = xSemaphoreCreateMutex();

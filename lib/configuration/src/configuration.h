@@ -15,9 +15,6 @@
 
 #define PATCH 1
 #define PALM 2
-#define R20C20 97
-#define ONBOARD 98
-#define CUSTOM 99
 
 /*
 These are the default substrate settings for a newly flashed controller, but they can be overwritten with 
@@ -106,7 +103,7 @@ CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
   #define WATCHDOG_PET_INTERVAL 50 // ms
 #endif
 
-// values used for charlieplexing
+// used for setting the outputCNF for the h bridge drivers
 #define ANODE 1 // 1 = HS fet enabled, LS fet disabled on h bridge driver
 #define CATHODE 0 // 0 = LS fet enabled, HS fet disabled on h bridge driver
 
@@ -120,37 +117,6 @@ static const unsigned long offDur_init = 1000; // tenths of a ms
 // stress test vector
 static const std::vector<uint8_t> stressTestVect = {
     1, 1, // message tpye, tapoutID
-    3, 12 // v12d/e on the controller (using the reverse patch pinout) --> row (anode) is CH2, col (cathode) is CH4
-    // 0, 0, // row, col
-    // 1, 0,
-    // 2, 0,
-    // 3, 0,
-    // 4, 0,
-    // 5, 0,
-    // 6, 0,
-    // 7, 0,
-    // 8, 0,
-    // 9, 0,
-    // 0, 1,
-    // 1, 1,
-    // 2, 1,
-    // 3, 1,
-    // 4, 1,
-    // 5, 1,
-    // 6, 1,
-    // 7, 1,
-    // 8, 1,
-    // 9, 1,
-    // 0, 2,
-    // 1, 2,
-    // 2, 2,
-    // 3, 2,
-    // 4, 2,
-    // 5, 2,
-    // 6, 2,
-    // 7, 2,
-    // 8, 2,
-    // 9, 2
 };
 
 // touch pin detection thresholds
