@@ -14,8 +14,8 @@ Tracks the "heat" for each element in the tap matrix, which we use to make sure 
 don't drive them too hard. See description for OVERTAP_PROTECTION for more info.
 */
 struct TapperMonitor {
-    unsigned long lastMillis;
-    int heat;
+    unsigned long lastMicros;
+    uint32_t heat;
 };
 
 struct TapSettings {

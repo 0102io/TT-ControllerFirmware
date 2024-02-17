@@ -34,10 +34,11 @@ It does this by calculating a value called "heat" which builds up with large onD
 The values are currently balanced around an assumed safe continuous duty cycle of 3ms onDuration / 51ms offDuration repeated on a single tapper.
 See this sheet for sample calculations: https://docs.google.com/spreadsheets/d/15yVmE13jGJZapsrEjx4v79JR5FFSrgQL-_rgFeacN8Q/edit?usp=sharing
 */
-// #define OVERTAP_PROTECTION // currently has a bug causing the board to crash when on and off durations are both very short
+#define OVERTAP_PROTECTION // currently has a bug causing the board to crash when on and off durations are both very short
 #ifdef OVERTAP_PROTECTION
-  #define ON_DURATION_MULTIPLIER 17
-  #define ATTENUATION_CONSTANT 10
+  #define COOLING_DENOMINATOR 100
+  #define ACCEPTABLE_HEAT 100000 // equivalent number of microseconds of being on continuously
+  #define ATTENUATION_DENOMINATOR 25
 #endif // OVERTAP_PROTECTION
 
 // monitors the h-bridge enable net and does a print statement if it gets pulled low (by the overcurrent protection or watchdog circuits).

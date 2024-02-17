@@ -16,13 +16,14 @@ void TapHandler::setupTapHandler() {
         driver[i] = new HBDriver(CSPin[i]);
     }
 
-    // Create array of TapperMonitors
+    // Create array of TapperMonitors, one for every possible output pin intersection, so n x n where n = number of chips x number of outputs
     #ifdef OVERTAP_PROTECTION
-      tapperMonitor = new TapperMonitor*[numRows];
-      for(int i = 0; i < numRows; ++i) {
-          tapperMonitor[i] = new TapperMonitor[numCols];
-          for (int j = 0; j < numCols; j++) {
-            tapperMonitor[i][j].lastMillis = 0;
+      int n = numDrivers * NUM_OUTPUTS_PER_DRIVER; // 10 output pins per driver chip
+      tapperMonitor = new TapperMonitor*[n];
+      for(int i = 0; i < n; ++i) {
+          tapperMonitor[i] = new TapperMonitor[n];
+          for (int j = 0; j < n; j++) {
+            tapperMonitor[i][j].lastMicros = 0;
             tapperMonitor[i][j].heat = 0;
           }
       }
@@ -270,8 +271,8 @@ void TapHandler::tap() {
   uint8_t cathodeCS = currentTap.cathodeCS;
   uint8_t anodeOutputPin = currentTap.anodeOutputPin;
   uint8_t cathodeOutputPin = currentTap.cathodeOutputPin;
-  unsigned long onDuration = currentTap.onDuration;
-  unsigned long offDuration = currentTap.offDuration;
+  unsigned long onDurationUS = currentTap.onDuration * 10;
+  unsigned long offDurationMS = currentTap.offDuration * 10;
 
   if (anodeOutputPin < 10 && cathodeOutputPin < 10 && anodeCS <= 4 && cathodeCS <= 4) {
 
@@ -285,35 +286,32 @@ void TapHandler::tap() {
       #endif
     #endif
 
-    unsigned long balance = 0;
+    unsigned long onDurationReduction = 0;
 
     #ifdef OVERTAP_PROTECTION
-      // this section needs to be tested again, the /10 was added when onDuration changed from tenths of a ms to hundredths of a ms
-      unsigned long interval = (millis() - tapperMonitor[r][c].lastMillis) * 10; // why is this multiplied by 10?
-      int lastHeat = tapperMonitor[r][c].heat;
+      uint8_t anodeIndex = anodeCS * NUM_OUTPUTS_PER_DRIVER + anodeOutputPin;
+      uint8_t cathodeIndex = cathodeCS * NUM_OUTPUTS_PER_DRIVER + cathodeOutputPin;
+      unsigned long interval = (micros() - tapperMonitor[anodeIndex][cathodeIndex].lastMicros); // TODO: catch timer overflow
+      
+      int currentHeat = tapperMonitor[anodeIndex][cathodeIndex].heat - interval/COOLING_DENOMINATOR;
+      if (currentHeat < 0) currentHeat = 0; // don't let heat be negative
 
-      unsigned long onDurReduction = (onDuration / 10) * lastHeat / (interval * ATTENUATION_CONSTANT); 
-      unsigned long attenuatedOnDur;
-      if (onDurReduction != 0) {
-        if (onDurReduction < (onDuration / 10)) attenuatedOnDur = (onDuration / 10) - onDurReduction; // since we're doing unsigned integer math we have to make sure it doesn't go negative
-        else attenuatedOnDur = 0;
-        
-        unsigned long newOnDuration = (attenuatedOnDur < (onDuration / 10)) ? attenuatedOnDur : (onDuration / 10); // don't tap longer than intended
-        balance = (newOnDuration < (onDuration / 10)) ? (onDuration / 10) - newOnDuration : 0; // pause for this amount of time after the tap so the pattern cadance isn't messed up
-
+      if (currentHeat > ACCEPTABLE_HEAT) {
+        uint32_t attenuation = (currentHeat - ACCEPTABLE_HEAT) / ATTENUATION_DENOMINATOR;
+        onDurationUS = onDurationUS - attenuation - onDurationUS / ATTENUATION_DENOMINATOR;
+        // ARGPRINTLN("", onDurationUS);
+        // Create an overtap warning
         if (xSemaphoreTake(warningQMutex, 0) == pdTRUE) { // xBlockTime set to 0 because we don't want to block while tapping
           addToWarningQ(OVERTAP);
-          addToWarningQ(r);
-          addToWarningQ(c);
+          addToWarningQ(anodeIndex);
+          addToWarningQ(cathodeIndex);
           EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
           xSemaphoreGive(warningQMutex);
         }
       }
-      
-      int newHeat = (onDuration / 10) * ON_DURATION_MULTIPLIER - interval + lastHeat;
-      
-      tapperMonitor[r][c].heat = (newHeat > 0) ? newHeat : 0; // don't let heat be negative
-      tapperMonitor[r][c].lastMillis = millis();
+
+      tapperMonitor[anodeIndex][cathodeIndex].heat = currentHeat + onDurationUS;
+      tapperMonitor[anodeIndex][cathodeIndex].lastMicros = micros();
 
     #endif //OVERTAP_PROTECTION
 
@@ -322,20 +320,20 @@ void TapHandler::tap() {
       case 0:
         break;
       case 1:
-        balance += onDuration / 4;
-        onDuration = onDuration * 3 / 4;
+        onDurationReduction += onDurationUS / 4;
+        onDurationUS = onDurationUS * 3 / 4;
         break;
       case 2:
-        balance += onDuration / 2;
-        onDuration = onDuration / 2;
+        onDurationReduction += onDurationUS / 2;
+        onDurationUS = onDurationUS / 2;
         break;
       case 3:
-        balance += onDuration * 3 / 4;
-        onDuration = onDuration / 4;
+        onDurationReduction += onDurationUS * 3 / 4;
+        onDurationUS = onDurationUS / 4;
         break;
       case 4:
-        balance += onDuration * 7 / 8;
-        onDuration = onDuration / 8;
+        onDurationReduction += onDurationUS * 7 / 8;
+        onDurationUS = onDurationUS / 8;
         break;
     }
 
@@ -345,7 +343,7 @@ void TapHandler::tap() {
     driver[cathodeCS]->setOutputCNF(cathodeOutputPin, CATHODE);
     writeOutput(anodeCS, anodeOutputPin);
     writeOutput(cathodeCS, cathodeOutputPin);
-    delayMicroseconds(onDuration*10);
+    delayMicroseconds(onDurationUS);
     driver[anodeCS]->clrOutputVal(anodeOutputPin);
     driver[cathodeCS]->clrOutputVal(cathodeOutputPin);
     writeOutput(anodeCS, anodeOutputPin);
@@ -360,13 +358,13 @@ void TapHandler::tap() {
         digitalWrite(LED, LOW);
       #endif
     #endif
-    delayMicroseconds(balance*10);
+    delayMicroseconds(onDurationReduction);
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
-    delayMicroseconds(onDuration*10);
+    delayMicroseconds(onDurationUS);
     // DPRINTLN("Empty tap");
   }
-  setTapTimer(offDuration);
+  setTapTimer(offDurationMS);
 }
 
 /*

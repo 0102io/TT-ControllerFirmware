@@ -99,5 +99,6 @@ static const uint8_t cs_HBD2 = 40;
 static const uint8_t cs_HBD3 = 33;
 static const uint8_t CSPin[] = {cs_HBD0, cs_HBD1, cs_HBD2, cs_HBD3};
 static const uint8_t numDrivers = sizeof(CSPin)/sizeof(CSPin[0]);
+static const uint8_t NUM_OUTPUTS_PER_DRIVER = 10; // for MP6527GF
 
 #endif /* Pins_Arduino_h */
