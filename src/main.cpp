@@ -60,10 +60,9 @@ void statusNotification(void * parameter) {
       statusArray[28] = (imu.temperature >> 8) & 0xFF;
       statusArray[29] = imu.temperature & 0xFF;
 
-      if (xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE) {
-        notifyCentral(STATUS_UPDATE, statusArray);
-        xSemaphoreGive(notifyMutex);
-      }
+      assert(xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE);
+      notifyCentral(STATUS_UPDATE, statusArray);
+      xSemaphoreGive(notifyMutex);
     }
     unsigned long interval = 1000 / statusNotificationFreq;
     if (statusTimerRepeat) setStatusTimer(interval);
@@ -73,14 +72,12 @@ void statusNotification(void * parameter) {
 void warningNotification (void * parameter) {
   for (;;) {
     xEventGroupWaitBits(notificationEventGroup, EVENT_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
-    if (xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE) {
-      if (xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE) { 
-        notifyCentral(WARNING, warningQ, warningQTail);
-        warningQTail = 0;
-        xSemaphoreGive(warningQMutex);
-      }
-      xSemaphoreGive(notifyMutex);
-    }
+    assert(xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE);
+    assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+    notifyCentral(WARNING, warningQ, warningQTail);
+    warningQTail = 0;
+    xSemaphoreGive(warningQMutex);
+    xSemaphoreGive(notifyMutex);
   }
 }
 

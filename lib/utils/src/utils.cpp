@@ -505,11 +505,10 @@ void updateBoardTempLevel(uint16_t temperature) {
   else boardOverheatLevel = 0;
 
   if (lastOverHeatLevel != boardOverheatLevel) { // this probably needs some hysteresis so we don't send a bunch of warnings as we're passing each threshold
-    if (xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE) {
-      addToWarningQ(BOARD_OVERHEAT);
-      addToWarningQ(boardOverheatLevel);
-      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
-      xSemaphoreGive(warningQMutex);
-    }
+    assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+    addToWarningQ(BOARD_OVERHEAT);
+    addToWarningQ(boardOverheatLevel);
+    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+    xSemaphoreGive(warningQMutex);
   }
 }
