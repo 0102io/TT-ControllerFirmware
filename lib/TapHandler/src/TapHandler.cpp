@@ -117,13 +117,12 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   int len = (int) data.size();
 
   for (int i = 0; i < len; i+= 6) {
-    // this block will contain row, col, onDur, offDur
     if (i + 6 <= len) {
       newTap.onDuration = (data[i] << 8) | data[i+1];
       newTap.offDuration = (data[i+2] << 8) | data[i+3];
-      newTap.anodeCS = (data[i+4] >> 4) & 0b11;
+      newTap.anodeID = (data[i+4] >> 4) & 0b11;
       newTap.anodeOutputPin = data[i+4] & 0b00001111;
-      newTap.cathodeCS = (data[i+5] >> 4) & 0b11;
+      newTap.cathodeID = (data[i+5] >> 4) & 0b11;
       newTap.cathodeOutputPin = data[i+5] & 0b00001111;
 
       if (!tapQ.isFull()) tapQ.push(newTap);
@@ -158,32 +157,6 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   }
 
   return;
-}
-
-
-/*
-This is the method that puts together the SPI message that is sent to the H-Bridge drivers. It turns on the output according to
-outputNumber (1-based, just like the datasheet). The data it sends is pulled from what is stored in the HBDriver object's output
-registers.
-
-The H-bridge ICs send data back on the SPI bus, which we check for errors.
-*/
-void TapHandler::writeOutput(uint8_t id, uint8_t outputNumber) {
-  // ARGPRINT("CS ", id);
-  // ARGPRINT(", output ", outputNumber);
-  uint8_t cs = driver[id]->CS;
-  uint16_t outReg;
-  if (outputNumber < 6) outReg = driver[id]->outputRegister1to6;
-  else outReg = driver[id]->outputRegister7to10;
-  // ARGPRINTLN(", register: ", outReg);
-  uint16_t retData;
-  // TODO: the SPI transaction seems to take 50-150us (usually 50-70 but the last call to turn off a col takes 150-200us sometimes, not sure why). This is with SPI clockspeed set to 2MHz and core speed 80MHz.
-  digitalWrite(cs, LOW);
-  SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1));
-  retData = SPI.transfer16(outReg);
-  SPI.endTransaction();
-  digitalWrite(cs, HIGH);
-  checkDiagnosticReg(retData, id, outReg);
 }
 
 /*
@@ -267,30 +240,35 @@ void TapHandler::tap() {
   TapSettings currentTap = tapQ.pop();
 
   // load settings for this tap
-  uint8_t anodeCS = currentTap.anodeCS;
-  uint8_t cathodeCS = currentTap.cathodeCS;
+  uint8_t anodeID = currentTap.anodeID;
+  uint8_t cathodeID = currentTap.cathodeID;
   uint8_t anodeOutputPin = currentTap.anodeOutputPin;
   uint8_t cathodeOutputPin = currentTap.cathodeOutputPin;
   unsigned long onDurationUS = currentTap.onDuration * 10;
-  unsigned long offDurationMS = currentTap.offDuration * 10;
+  unsigned long offDurationMS = currentTap.offDuration / 10;
 
-  if (anodeOutputPin < 10 && cathodeOutputPin < 10 && anodeCS <= 4 && cathodeCS <= 4) {
+  if (onDurationUS == 0) {
+    setTapTimer(offDurationMS);
+    return;
+  }
 
-    // Set the row and col outputs
-    #ifdef DEBUG
-      #if VERSION_IS_AT_LEAST(12, 1)
-        analogWrite(LEDB, 0);
-        analogWrite(LEDG, 0);
-      #else
-        digitalWrite(LED, HIGH);
-      #endif
-    #endif
+  if (anodeOutputPin < NUM_OUTPUTS_PER_DRIVER && cathodeOutputPin < NUM_OUTPUTS_PER_DRIVER && anodeID < numDrivers && cathodeID < numDrivers) {
+
+    // #ifdef DEBUG
+    //   #if VERSION_IS_AT_LEAST(12, 1)
+    //     // note that these take ~140us each
+    //     analogWrite(LEDB, 0);
+    //     analogWrite(LEDG, 0);
+    //   #else
+    //     digitalWrite(LED, HIGH);
+    //   #endif
+    // #endif
 
     unsigned long onDurationReduction = 0;
 
     #ifdef OVERTAP_PROTECTION
-      uint8_t anodeIndex = anodeCS * NUM_OUTPUTS_PER_DRIVER + anodeOutputPin;
-      uint8_t cathodeIndex = cathodeCS * NUM_OUTPUTS_PER_DRIVER + cathodeOutputPin;
+      uint8_t anodeIndex = anodeID * NUM_OUTPUTS_PER_DRIVER + anodeOutputPin;
+      uint8_t cathodeIndex = cathodeID * NUM_OUTPUTS_PER_DRIVER + cathodeOutputPin;
       unsigned long interval = (micros() - tapperMonitor[anodeIndex][cathodeIndex].lastMicros); // TODO: catch timer overflow
       
       int currentHeat = tapperMonitor[anodeIndex][cathodeIndex].heat - interval/COOLING_DENOMINATOR;
@@ -337,28 +315,49 @@ void TapHandler::tap() {
         break;
     }
 
-    driver[anodeCS]->setOutputVal(anodeOutputPin);
-    driver[anodeCS]->setOutputCNF(anodeOutputPin, ANODE);
-    driver[cathodeCS]->setOutputVal(cathodeOutputPin);
-    driver[cathodeCS]->setOutputCNF(cathodeOutputPin, CATHODE);
-    writeOutput(anodeCS, anodeOutputPin);
-    writeOutput(cathodeCS, cathodeOutputPin);
+    uint16_t retDataAnodeOn;
+    uint16_t retDataCathodeOn;
+    uint16_t retDataAnodeOff;
+    uint16_t retDataCathodeOff;
+
+    uint16_t anodeOutputRegister = driver[anodeID]->setOutput(anodeOutputPin, ANODE);
+    uint16_t cathodeOutputRegister = driver[cathodeID]->setOutput(cathodeOutputPin, CATHODE);
+
+    digitalWrite(driver[anodeID]->CS, LOW);
+    SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1));
+    retDataAnodeOn = SPI.transfer16(anodeOutputRegister);
+    digitalWrite(driver[anodeID]->CS, HIGH);
+
+    digitalWrite(driver[cathodeID]->CS, LOW);
+    retDataCathodeOn = SPI.transfer16(cathodeOutputRegister);
+    digitalWrite(driver[cathodeID]->CS, HIGH);
+
     delayMicroseconds(onDurationUS);
-    driver[anodeCS]->clrOutputVal(anodeOutputPin);
-    driver[cathodeCS]->clrOutputVal(cathodeOutputPin);
-    writeOutput(anodeCS, anodeOutputPin);
-    writeOutput(cathodeCS, cathodeOutputPin);
 
+    anodeOutputRegister = driver[anodeID]->clrOutputVal(anodeOutputPin);
+    cathodeOutputRegister = driver[cathodeID]->clrOutputVal(cathodeOutputPin);
 
-    #ifdef DEBUG
-      #if VERSION_IS_AT_LEAST(12, 1)
-        analogWrite(LEDB, 255);
-        analogWrite(LEDG, 255);
-      #else
-        digitalWrite(LED, LOW);
-      #endif
-    #endif
-    delayMicroseconds(onDurationReduction);
+    digitalWrite(driver[anodeID]->CS, LOW);
+    retDataAnodeOff = SPI.transfer16(anodeOutputRegister);
+    digitalWrite(driver[anodeID]->CS, HIGH);
+
+    digitalWrite(driver[cathodeID]->CS, LOW);
+    retDataCathodeOff = SPI.transfer16(cathodeOutputRegister);
+    SPI.endTransaction();
+    digitalWrite(driver[cathodeID]->CS, HIGH);
+
+    checkDiagnosticReg(retDataAnodeOff, anodeID, anodeOutputRegister);
+    checkDiagnosticReg(retDataCathodeOff, cathodeID, cathodeOutputRegister);
+
+    // #ifdef DEBUG
+    //   #if VERSION_IS_AT_LEAST(12, 1)
+    //     analogWrite(LEDB, 255);
+    //     analogWrite(LEDG, 255);
+    //   #else
+    //     digitalWrite(LED, LOW);
+    //   #endif
+    // #endif
+    if (onDurationReduction > 0) delayMicroseconds(onDurationReduction);
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
     delayMicroseconds(onDurationUS);

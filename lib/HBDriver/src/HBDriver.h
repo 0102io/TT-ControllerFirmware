@@ -7,9 +7,8 @@ class HBDriver {
 public:
     HBDriver(uint8_t cs);
 
-    void setOutputCNF(uint8_t out, uint8_t cnf);
-    void setOutputVal(uint8_t out);
-    void clrOutputVal(uint8_t out);
+    uint16_t setOutput(uint8_t out, uint8_t cnf);
+    uint16_t clrOutputVal(uint8_t out);
 
     uint8_t CS;
     uint8_t output[10];

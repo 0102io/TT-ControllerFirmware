@@ -435,8 +435,8 @@ void disableTapTimer() {
   timerRestart(tapTimer);
 }
 
-void setTapTimer(uint64_t durationTenthsMS) {
-  timerAlarmWrite(tapTimer, durationTenthsMS * 100, false);
+void setTapTimer(uint64_t durationMS) {
+  timerAlarmWrite(tapTimer, durationMS * 1000, false);
   timerAlarmEnable(tapTimer);
 }
 

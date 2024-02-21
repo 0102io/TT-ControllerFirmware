@@ -19,8 +19,8 @@ struct TapperMonitor {
 };
 
 struct TapSettings {
-    uint8_t anodeCS;
-    uint8_t cathodeCS;
+    uint8_t anodeID;
+    uint8_t cathodeID;
     uint8_t anodeOutputPin;
     uint8_t cathodeOutputPin;
     unsigned long onDuration;

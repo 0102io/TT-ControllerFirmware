@@ -117,7 +117,10 @@ static const unsigned long offDur_init = 1000; // tenths of a ms
 
 // stress test vector
 static const std::vector<uint8_t> stressTestVect = {
-    1, 1, // message tpye, tapoutID
+    0x01, 0x01, // message tpye, tapoutID
+    0x00, 0x01, // on duration, hundredths of a ms
+    0x00, 0x00, // off duration, tenths of a ms
+    0x02, 0x09 // anode = 0b0000 0010 (cs = 0, pin = 2), cathode = 0b0000 1001 (cs = 0, pin = 9) --> on-board test points for v12d/e
 };
 
 // touch pin detection thresholds
