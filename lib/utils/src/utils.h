@@ -83,10 +83,10 @@ void setupFuelGauge();
 void setFuelGaugeConfig();
 void fuelGaugeAlertISR();
 void updateBatteryVoltageAndCRate();
-void IRAM_ATTR tapTimerInterrupt();
-void disableTapTimer();
-void setTapTimer(uint64_t durationTenthsMS);
-bool tapTimerEnabled();
+void IRAM_ATTR generalPurposeTimerInterrupt();
+void disableGeneralPurposeTimer();
+void setGeneralPurposeTimer(uint64_t durationUS);
+bool generalPurposeTimerEnabled();
 void createTaskFunction(void (*taskFunction)(void *), const char *taskName, uint16_t stackSize, uint8_t priority);
 void IRAM_ATTR statusTimerInterrupt();
 void disableStatusTimer();
@@ -131,5 +131,7 @@ extern uint8_t statusNotificationFreq;
 extern std::vector<uint8_t> warningQ;
 extern uint16_t warningQTail;
 extern SemaphoreHandle_t warningQMutex;
+
+extern SemaphoreHandle_t tapQMutex;
 
 #endif // UTILS_H

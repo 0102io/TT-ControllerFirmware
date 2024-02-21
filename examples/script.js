@@ -354,7 +354,7 @@ document.getElementById("tapOutBtn").addEventListener("click", () => {
     let len = 2; // 2 bytes for message type and message ID
     for (let i = 0; i < 3; i++) {
         const qty = parseInt(document.getElementById(`qty${i}`).value);
-        len += qty * 2 + 4; // 2 bytes for each additional 'row' and 'col', 4 bytes for 'onDurMSB', onDurLSB, 'offDurMSB', and 'offDurLSB' of the first element
+        len += qty * 6; // 1 byte each for row and col, 2 bytes each for on and off durations
     }
 
     const arr = new Uint8Array(len);

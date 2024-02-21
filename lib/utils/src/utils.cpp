@@ -13,7 +13,7 @@
 #include <Wire.h>
 #include <esp_sleep.h>
 
-hw_timer_t * tapTimer = NULL; // used for tap offDuration timing
+hw_timer_t * generalPurposeTimer = NULL;
 hw_timer_t * statusTimer = NULL; // used for sending the status messages to central
 hw_timer_t * watchdogPetTimer = NULL; // used to "pet" the watchdog (resets the timer but doesn't disable it)
 hw_timer_t * inactivityTimer = NULL; // used to go into deep sleep if we aren't connected to bluetooth and are idle for a while
@@ -38,6 +38,8 @@ EventGroupHandle_t notificationEventGroup;
 std::vector<uint8_t> warningQ(MAX_WARNING_QUEUE_SIZE);
 uint16_t warningQTail = 0; // first open position in the queue
 SemaphoreHandle_t warningQMutex;
+
+SemaphoreHandle_t tapQMutex;
 
 uint8_t batteryPercent = 0;
 float batteryVoltage = 0;
@@ -83,8 +85,9 @@ void setupUtils() {
     setCpuFrequencyMhz(CPU_CLK_FREQ_OVERIDE);
   #endif //CPU_CLK_FREQ_OVERIDE
 
-  tapTimer = timerBegin(0, CPU_CLK_FREQ / 1000000, true);
-  timerAttachInterrupt(tapTimer, &tapTimerInterrupt, true);
+  generalPurposeTimer = timerBegin(0, CPU_CLK_FREQ / 1000000, true);
+  timerAttachInterrupt(generalPurposeTimer, &generalPurposeTimerInterrupt, true);
+
   tapEventGroup = xEventGroupCreate();
 
   statusTimer = timerBegin(1, CPU_CLK_FREQ / 1000000, true);
@@ -182,6 +185,7 @@ void setupUtils() {
   esp_sleep_enable_ext0_wakeup(static_cast<gpio_num_t>(USER_BUTTON), LOW);
   setInactivityTimer(true);
   warningQMutex = xSemaphoreCreateMutex();
+  tapQMutex = xSemaphoreCreateMutex();
 }
 
 // wrapper for xTaskCreate
@@ -420,9 +424,9 @@ void IRAM_ATTR interactButtonPress() {
 // ------------------ Tap Timer Functions ------------------
 
 /*
-Function that is called when the tapTimer alarm fires.
+Function that is called when the generalPurposeTimer alarm fires.
 */
-void IRAM_ATTR tapTimerInterrupt() {
+void IRAM_ATTR generalPurposeTimerInterrupt() {
   BaseType_t xHigherPriorityTaskWoken = pdFALSE;
   xEventGroupSetBitsFromISR(tapEventGroup, EVENT_BIT0, &xHigherPriorityTaskWoken);
   if (xHigherPriorityTaskWoken) {
@@ -430,18 +434,18 @@ void IRAM_ATTR tapTimerInterrupt() {
   }
 }
 
-void disableTapTimer() {
-  timerAlarmDisable(tapTimer);
-  timerRestart(tapTimer);
+void disableGeneralPurposeTimer() {
+  timerAlarmDisable(generalPurposeTimer);
+  timerRestart(generalPurposeTimer);
 }
 
-void setTapTimer(uint64_t durationMS) {
-  timerAlarmWrite(tapTimer, durationMS * 1000, false);
-  timerAlarmEnable(tapTimer);
+void setGeneralPurposeTimer(uint64_t durationUS) {
+  timerAlarmWrite(generalPurposeTimer, durationUS, false);
+  timerAlarmEnable(generalPurposeTimer);
 }
 
-bool tapTimerEnabled() {
-  return timerAlarmEnabled(tapTimer);
+bool generalPurposeTimerEnabled() {
+  return timerAlarmEnabled(generalPurposeTimer);
 }
 
 // ------------------ Status Timer Functions ------------------
@@ -504,7 +508,7 @@ void updateBoardTempLevel(uint16_t temperature) {
     if (xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE) {
       addToWarningQ(BOARD_OVERHEAT);
       addToWarningQ(boardOverheatLevel);
-      EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
       xSemaphoreGive(warningQMutex);
     }
   }

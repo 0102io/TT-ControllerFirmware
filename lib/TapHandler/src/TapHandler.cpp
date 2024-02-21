@@ -49,7 +49,6 @@ This method is called by comms manager when a CANCEL_AND_TAP message is received
 */
 void TapHandler::cancelAndTap(std::vector<uint8_t> msg) {
   // cancel queue and call normal tapout function
-    disableTapTimer();
     tapQ.clear();
     receiveTapOut(msg);
 }
@@ -67,9 +66,7 @@ void TapHandler::receiveTapOut(std::vector<uint8_t> msg) {
 
   if (id == NO_TAPOUT_ID || !len) {
     // cancel the existing tapout if there was one already
-    disableTapTimer();
     tapQ.clear();
-    setTapTimer(1); // set it to execute almost immediately (let this task finish first)
     return;
   }
   else {
@@ -77,12 +74,10 @@ void TapHandler::receiveTapOut(std::vector<uint8_t> msg) {
     DPRINTLN("adding pattern to buffer");
     addToQueue(msg);
     currentTapOutID = id; // even though we haven't necessarily finished the last pattern, we change the pattern ID to the most recently received one
-    if (!tapTimerEnabled()) {
-      #ifdef REGULATOR_PWR_SAVE
-        digitalWrite(REG12V_EN_PIN, HIGH); // also enable the 12V regulator
-      #endif
-      setTapTimer(1); // if we aren't already tapping then start the timer
-    }
+    #ifdef REGULATOR_PWR_SAVE
+      digitalWrite(REG12V_EN_PIN, HIGH); // also enable the 12V regulator
+    #endif
+    xEventGroupSetBits(tapEventGroup, EVENT_BIT0); // unblock the tap task (main loop)
     return;
   }
 }
@@ -151,7 +146,7 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         addToWarningQ((uint8_t)rejectedIndex);
       }
       if (incorrectMsgSize) addToWarningQ(INCORRECT_MSG_SIZE);
-      EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
       xSemaphoreGive(warningQMutex);
     }
   }
@@ -236,7 +231,6 @@ Loads the next tap in the TapQueue, then does the tap:
 This is currently set up to accomodate charlieplexing, where every output can be either an anode or cathode.
 */
 void TapHandler::tap() {
-  disableTapTimer();
   TapSettings currentTap = tapQ.pop();
 
   // load settings for this tap
@@ -245,10 +239,10 @@ void TapHandler::tap() {
   uint8_t anodeOutputPin = currentTap.anodeOutputPin;
   uint8_t cathodeOutputPin = currentTap.cathodeOutputPin;
   unsigned long onDurationUS = currentTap.onDuration * 10;
-  unsigned long offDurationMS = currentTap.offDuration / 10;
+  unsigned long offDurationUS = currentTap.offDuration * 100;
 
   if (onDurationUS == 0) {
-    setTapTimer(offDurationMS);
+    delayMicroseconds(offDurationUS);
     return;
   }
 
@@ -283,7 +277,7 @@ void TapHandler::tap() {
           addToWarningQ(OVERTAP);
           addToWarningQ(anodeIndex);
           addToWarningQ(cathodeIndex);
-          EventBits_t uxBits = xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+          xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
           xSemaphoreGive(warningQMutex);
         }
       }
@@ -315,37 +309,47 @@ void TapHandler::tap() {
         break;
     }
 
+    // containers for diagnostic data sent from drivers to the controller
     uint16_t retDataAnodeOn;
     uint16_t retDataCathodeOn;
     uint16_t retDataAnodeOff;
     uint16_t retDataCathodeOff;
 
+    // prepare the output data for anode and cathode
     uint16_t anodeOutputRegister = driver[anodeID]->setOutput(anodeOutputPin, ANODE);
     uint16_t cathodeOutputRegister = driver[cathodeID]->setOutput(cathodeOutputPin, CATHODE);
-
-    digitalWrite(driver[anodeID]->CS, LOW);
-    SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1));
+  
+    // turning the anode on:
+    digitalWrite(driver[anodeID]->CS, LOW); // tell the anode chip we're about to write data to it
+    SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1)); // this takes a lock on the SPI bus, so take it as late as possible and give it up as early as possible (though I don't know if any other module uses this bus)
     retDataAnodeOn = SPI.transfer16(anodeOutputRegister);
-    digitalWrite(driver[anodeID]->CS, HIGH);
-
-    digitalWrite(driver[cathodeID]->CS, LOW);
+    digitalWrite(driver[anodeID]->CS, HIGH); // this clocks the data in and the chip starts to act on it
+    
+    // turning the cathode on:
+    digitalWrite(driver[cathodeID]->CS, LOW); // repeat for the cathode
     retDataCathodeOn = SPI.transfer16(cathodeOutputRegister);
-    digitalWrite(driver[cathodeID]->CS, HIGH);
-
-    delayMicroseconds(onDurationUS);
-
+    digitalWrite(driver[cathodeID]->CS, HIGH); // as soon as this completes, the tapper will be powered. so start timing the onDuration immediately.
+    
+    // setting up for turning both off:
+    uint32_t tWriteStart = micros();
     anodeOutputRegister = driver[anodeID]->clrOutputVal(anodeOutputPin);
     cathodeOutputRegister = driver[cathodeID]->clrOutputVal(cathodeOutputPin);
-
-    digitalWrite(driver[anodeID]->CS, LOW);
+    digitalWrite(driver[anodeID]->CS, LOW); // we can start to load this data into the driver chip before onDurationUS has elapsed, so we can turn it off with as little latency as possible
     retDataAnodeOff = SPI.transfer16(anodeOutputRegister);
+    uint32_t elapsedTime = micros() - tWriteStart;
+    onDurationUS = elapsedTime < onDurationUS ? onDurationUS - elapsedTime : 0;
+    delayMicroseconds(onDurationUS); // delay for the remainder of the onDuration
+    
+    // turn the anode off:
     digitalWrite(driver[anodeID]->CS, HIGH);
 
+    // turn the cathode off:
     digitalWrite(driver[cathodeID]->CS, LOW);
     retDataCathodeOff = SPI.transfer16(cathodeOutputRegister);
     SPI.endTransaction();
     digitalWrite(driver[cathodeID]->CS, HIGH);
 
+    // check the diagnostic data (TODO: needs rework)
     checkDiagnosticReg(retDataAnodeOff, anodeID, anodeOutputRegister);
     checkDiagnosticReg(retDataCathodeOff, cathodeID, cathodeOutputRegister);
 
@@ -357,13 +361,13 @@ void TapHandler::tap() {
     //     digitalWrite(LED, LOW);
     //   #endif
     // #endif
-    if (onDurationReduction > 0) delayMicroseconds(onDurationReduction);
+    if (onDurationReduction) offDurationUS += onDurationReduction;
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
-    delayMicroseconds(onDurationUS);
+    offDurationUS += onDurationUS;
     // DPRINTLN("Empty tap");
   }
-  setTapTimer(offDurationMS);
+  if (offDurationUS) delayMicroseconds(offDurationUS);
 }
 
 /*
@@ -397,22 +401,25 @@ void TapHandler::stressTest() {
 
 // helper function
 bool TapQueue::isFull() {
-  return size == MAX_QUEUE_SIZE;
+  return getSize() == MAX_QUEUE_SIZE;
 }
 
 // helper function
 bool TapQueue::isEmpty() {
-  return size == 0;
+  return getSize() == 0;
 }
 
 // helper function, returns the number of additional taps that we have room for.
 uint16_t TapQueue::headroom() {
-  return MAX_QUEUE_SIZE - size;
+  return MAX_QUEUE_SIZE - getSize();
 }
 
 // helper function
 uint16_t TapQueue::getSize() {
-  return size;
+  assert(xSemaphoreTake(tapQMutex, portMAX_DELAY) == pdTRUE);
+  uint16_t currentSize = size;
+  xSemaphoreGive(tapQMutex);
+  return currentSize;
 }
 
 // adds a new tap index + settings to the back of the queue (FIFO)
@@ -420,10 +427,11 @@ bool TapQueue::push(TapSettings newTap) {
   if (isFull()) {
       return false;
   }
-
+  assert(xSemaphoreTake(tapQMutex, portMAX_DELAY) == pdTRUE);
   taps[rear] = newTap;
   rear = (rear + 1) % MAX_QUEUE_SIZE; // wrap around if at the end
   ++size;
+  xSemaphoreGive(tapQMutex);
   return true;
 }
 
@@ -433,17 +441,19 @@ TapSettings TapQueue::pop() {
   if (isEmpty()) {
       return tap;
   }
-
+  assert(xSemaphoreTake(tapQMutex, portMAX_DELAY) == pdTRUE);
   tap = taps[front];
   front = (front + 1) % MAX_QUEUE_SIZE; // wrap around if at the end
-  --size;
-
+  --size; 
+  xSemaphoreGive(tapQMutex);
   return tap;
 }
 
 // empties the queue
 void TapQueue::clear() {
+  assert(xSemaphoreTake(tapQMutex, portMAX_DELAY) == pdTRUE);
   size = 0;
   front = 0;
   rear = 0;
+  xSemaphoreGive(tapQMutex);
 }

@@ -120,16 +120,14 @@ void setup() {
 
 void loop() {
   xEventGroupWaitBits(tapEventGroup, EVENT_BIT0, pdTRUE, pdFALSE, portMAX_DELAY);
-  if (!tapHandler.isDoneTapping()) {
+  while (!tapHandler.isDoneTapping()) {
     tapHandler.tap();
   }
-  else {
-    DPRINTLN("Tapout Complete");
-    #ifdef REGULATOR_PWR_SAVE
-      digitalWrite(REG12V_EN_PIN, LOW);
-    #endif
-    #ifdef STRESS_TEST
-      tapHandler.stressTest();
-    #endif // STRESS_TEST
-  }
+  DPRINTLN("Tapout Complete");
+  #ifdef REGULATOR_PWR_SAVE
+    digitalWrite(REG12V_EN_PIN, LOW);
+  #endif
+  #ifdef STRESS_TEST
+    tapHandler.stressTest();
+  #endif // STRESS_TEST
 }
