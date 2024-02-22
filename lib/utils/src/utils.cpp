@@ -48,7 +48,7 @@ uint16_t imuTemperature;
 uint8_t boardOverheatLevel = 0;
 
 Adafruit_MAX17048 fuelGauge;
-bool socChanged = false;
+volatile bool socChanged = false;
 
 /*
 Set up timers, auto light sleep, input/output pins, etc.
@@ -252,6 +252,7 @@ void deepSleep() {
 Callback for receiving alert pin interrupts from the fuel gauge, then reset the alert.
 */
 void receiveAlertSOC() {
+  DPRINTLN("received SOC alert");
   delay(1);
   batteryPercent = (uint8_t)fuelGauge.cellPercent();
   delay(1);
@@ -271,9 +272,9 @@ void setupFuelGauge() {
     DPRINTLN("Fuel gauge found");
   }
   else DPRINTLN("Fuel gauge not found");
-  delay(1);
-  setFuelGaugeConfig();
   delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate (about 200ms)
+  setFuelGaugeConfig();
+  delay(1);
   batteryPercent = (uint8_t)fuelGauge.cellPercent();
   ARGPRINTLN("battery percent = ", batteryPercent);
 }
@@ -290,8 +291,8 @@ void setFuelGaugeConfig() {
   if (err != 0) ARGPRINTLN("I2C error on fuel gauge bus:", err);
 }
 
-void fuelGaugeAlertISR() {
-  if (digitalRead(ALRT_PIN) == LOW) socChanged = true;
+void IRAM_ATTR fuelGaugeAlertISR() {
+  socChanged = true;
 }
 
 void updateBatteryVoltageAndCRate() {

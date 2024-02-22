@@ -25,6 +25,7 @@ void statusNotification(void * parameter) {
 
     if (centralConnected) {
       // These are written out individually so that it's easy to add new bytes to the end of the sent array
+      if(socChanged) receiveAlertSOC();
       statusArray[0] = batteryPercent;
 
       std::vector<uint8_t> tapHandlerStatus = tapHandler.getStatus();

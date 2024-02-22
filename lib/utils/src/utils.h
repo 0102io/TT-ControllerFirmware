@@ -81,7 +81,7 @@ void updateBatteryPercent();
 void receiveAlertSOC();
 void setupFuelGauge();
 void setFuelGaugeConfig();
-void fuelGaugeAlertISR();
+void IRAM_ATTR fuelGaugeAlertISR();
 void updateBatteryVoltageAndCRate();
 void IRAM_ATTR generalPurposeTimerInterrupt();
 void disableGeneralPurposeTimer();
@@ -122,6 +122,7 @@ extern uint8_t substrateVMinor;
 extern uint8_t batteryPercent;
 extern float batteryVoltage;
 extern float batteryCRate;
+extern volatile bool socChanged;
 extern uint16_t imuTemperature;
 extern uint8_t boardOverheatLevel;
 
