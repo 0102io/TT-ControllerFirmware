@@ -27,6 +27,13 @@ struct TapSettings {
     unsigned long offDuration;
 };
 
+const uint8_t TW_WARNING_BIT = 0;
+const uint8_t PSF_ERROR_BIT = 1;
+const uint8_t OLD_1TO6_ERROR_BIT = 2;
+const uint8_t OLD_7TO10_ERROR_BIT = 3;
+const uint8_t OC_1TO6_ERROR_BIT = 4;
+const uint8_t OC_7TO10_ERROR_BIT = 5;
+
 /*
 Circular FIFO buffer that stores the queue of tap indicies and on + off durations.
 
@@ -90,9 +97,9 @@ private:
     float adcConversionFactor; // adcConversionFactor = (3.3 * 1000) / (4095 * VtoCgain);
 
     void addToQueue(std::vector<uint8_t> data);
-    void writeOutput(uint8_t id, uint8_t outputNumber);
-    void checkDiagnosticReg(uint16_t returnedData, uint8_t id, uint16_t diagnosticRegister);
-    void srrReset(uint8_t id, uint16_t diagnosticRegister);
+    bool checkDiagnosticData(uint16_t diagnosticData, uint8_t driverID, uint8_t driverChannelSelectBit);
+    uint8_t getErrorsFromDiagnosticReg(uint16_t diagnosticRegister, uint8_t driverID, uint8_t channelSelectBit);
+    void srrReset(uint8_t id, uint8_t channelSelectBit);
 };
 
 #endif // TAPHANDLER_H

@@ -40,6 +40,7 @@ uint16_t warningQTail = 0; // first open position in the queue
 SemaphoreHandle_t warningQMutex;
 
 SemaphoreHandle_t tapQMutex;
+SemaphoreHandle_t gpTimerMutex;
 
 uint8_t batteryPercent = 0;
 float batteryVoltage = 0;
@@ -186,6 +187,7 @@ void setupUtils() {
   setInactivityTimer(true);
   warningQMutex = xSemaphoreCreateMutex();
   tapQMutex = xSemaphoreCreateMutex();
+  gpTimerMutex = xSemaphoreCreateMutex();
 }
 
 // wrapper for xTaskCreate

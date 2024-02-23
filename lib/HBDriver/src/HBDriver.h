@@ -3,6 +3,8 @@
 
 #include <Arduino.h>
 
+#define SRR_MIN_RESET_MS 100
+
 class HBDriver {
 public:
     HBDriver(uint8_t cs);
@@ -32,6 +34,10 @@ public:
     uint8_t channelSelect;
     uint8_t openLoadShutdown;
     uint8_t overVoltageLockout;
+
+    uint32_t srrTimerLastReset_outputs1to6;
+    uint32_t srrTimerLastReset_outputs7to10;
+    uint8_t errorFlags;
 };
 
 #endif // HBDriver_H

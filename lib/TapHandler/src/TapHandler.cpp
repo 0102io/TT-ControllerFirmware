@@ -33,12 +33,12 @@ void TapHandler::setupTapHandler() {
     SPI.begin();
 
     // Clear error bits on each register, seems to always start with PSF+OC faults?
-    uint16_t outputs1to6 = 0;
-    uint16_t outputs7to10 = (1 << 14);
     for (int i = 0; i < numDrivers; i++) {
-        srrReset(i, outputs1to6);
+        srrReset(i, 1);
+        driver[i]->srrTimerLastReset_outputs1to6 = millis();
         delay(150); // need to delay at least 100ms between successive SRR commands to the same IC
-        srrReset(i, outputs7to10);
+        srrReset(i, 0);
+        driver[i]->srrTimerLastReset_outputs7to10 = millis();
     }
     
     currentTapOutID = NO_TAPOUT_ID;
@@ -154,58 +154,97 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
   return;
 }
 
+bool TapHandler::checkDiagnosticData(uint16_t diagnosticData, uint8_t driverID, uint8_t driverChannelSelectBit) {
+
+  bool newErrorFlag = false;
+
+  uint8_t oldErrors = driver[driverID]->errorFlags;
+  uint8_t addedErrors = getErrorsFromDiagnosticReg(diagnosticData, driverID, driverChannelSelectBit);
+  uint8_t newErrors = oldErrors | addedErrors;
+
+  if (oldErrors != newErrors) {
+    driver[driverID]->errorFlags = newErrors;
+    newErrorFlag = true;
+  }
+
+  // if we have any over current errors, we need to try to do a status register reset
+  if (newErrors & (1 << OC_7TO10_ERROR_BIT) && (millis() - driver[driverID]->srrTimerLastReset_outputs7to10) > SRR_MIN_RESET_MS) {
+    srrReset(driverID, 1);
+    driver[driverID]->srrTimerLastReset_outputs7to10 = millis();
+  }
+  if (newErrors & (1 << OC_1TO6_ERROR_BIT) && (millis() - driver[driverID]->srrTimerLastReset_outputs1to6) > SRR_MIN_RESET_MS) {
+    srrReset(driverID, 0);
+    driver[driverID]->srrTimerLastReset_outputs1to6 = millis();
+  }
+
+  return newErrorFlag;
+}
+
 /*
-This method parses data that was written to the controller by the last h-bridge driver we messaged. It contains a couple of 
-possible error notifications, none of which we currently act on.
+This method parses data sent by an MP6527 h-bridge driver. For a detailed overview of these errors, 
+see Tables 3 and 4 here: https://www.monolithicpower.com/en/documentview/productdocument/index/version/2/document_type/Datasheet/lang/en/sku/MP6527GF/document_id/10142/
 */
-void TapHandler::checkDiagnosticReg(uint16_t returnedData, uint8_t id, uint16_t diagnosticRegister) {
-  uint8_t cs = driver[id]->CS;
-  bool srrAlreadyReset = false; // make sure we don't reset the register twice if there are 2 errors
+uint8_t TapHandler::getErrorsFromDiagnosticReg(uint16_t diagnosticRegister, uint8_t driverID, uint8_t channelSelectBit) {
+  uint8_t returnData = 0;
+
   for(uint8_t i = 0; i < 16; i++) {
-    if(returnedData & (1 << i)) {
+    if(diagnosticRegister & (1 << i)) {
       switch(i) {
-        // case 13: 
-          // ARGPRINT("Fault detected for CS pin ", cs);
-          // if (diagnosticRegister & (1 << 14)) DPRINT(", outputs 7-10: OLD");
-          // else DPRINT(", outputs 1-6: OLD");
-          // if (!srrAlreadyReset) srrReset(id, diagnosticRegister);
-          // srrAlreadyReset = true;
-          // break;
-        case 14: 
-          ARGPRINT("Fault detected for CS pin ", cs);
-          if (diagnosticRegister & (1 << 14)) DPRINT(", outputs 7-10: PSF");
-          else DPRINT(", outputs 1-6: PSF");
-          if (!srrAlreadyReset) srrReset(id, diagnosticRegister); // TODO - this should set a timer to do an SRR reset so we don't have to wait for the next time this method is called to try again.
-          srrAlreadyReset = true;
+        case 0: //thermal warning, resets automatically if the junction temperature drops below its recovery point; SRR not needed
+          ARGPRINT("Thermal warning for Hbridge ", driverID);
+          if (channelSelectBit) DPRINTLN(", outputs 7-10");
+          else DPRINTLN(", outputs 1-6");
+          returnData |= (1 << TW_WARNING_BIT);
+          break;
+        // case 13: // open load detected, though as far as I've tested this always triggers for our application; this doesn't turn off an output unless OLD_SD is set; SRR reset is needed to clear it 
+        //   ARGPRINT("Open load detected for Hbridge ", driverID);
+        //   if (channelSelectBit) {
+        //     DPRINTLN(", outputs 7-10");
+        //     returnData |= (1 << OLD_7TO10_ERROR_BIT);
+        //   }
+        //   else {
+        //     DPRINTLN(", outputs 1-6");
+        //     returnData |= (1 << OLD_1TO6_ERROR_BIT);
+        //   }
+        //   break;
+        case 14: // power supply failure; resets automatically if the supply returns to normal operating range; SRR reset not needed
+          ARGPRINT("Power supply failure detected for Hbridge ", driverID);
+          if (channelSelectBit) DPRINTLN(", outputs 7-10");
+          else DPRINTLN(", outputs 1-6");
+          returnData |= (1 << PSF_ERROR_BIT);
           break;
         case 15: 
-          ARGPRINT("Fault detected for CS pin ", cs);
-          if (diagnosticRegister & (1 << 14)) DPRINT(", outputs 7-10: OC");
-          else DPRINT(", outputs 1-6: OC");
-          if (!srrAlreadyReset) srrReset(id, diagnosticRegister);
-          srrAlreadyReset = true;
+          ARGPRINT("Over current detected for Hbridge ", driverID);
+          if (channelSelectBit) {
+            DPRINTLN(", outputs 7-10");
+            returnData |= (1 << OC_7TO10_ERROR_BIT);
+          }
+          else {
+            DPRINTLN(", outputs 1-6");
+            returnData |= (1 << OC_1TO6_ERROR_BIT);
+          }
           break;
       }
     }
   }
+  return returnData;
 }
 
 /*
 This method resets the status register on an h-bridge driver chip, which allows it to send new error messages. The chip has a 100ms 
 cooldown between successive SRR writes: https://www.monolithicpower.com/en/documentview/productdocument/index/version/2/document_type/Datasheet/lang/en/sku/MP6527GF/document_id/10142/
 */
-void TapHandler::srrReset(uint8_t id, uint16_t diagnosticRegister) {
+void TapHandler::srrReset(uint8_t id, uint8_t channelSelectBit) {
   unsigned long resetTimer = driver[id]->SRRtimer;
   unsigned long currentMillis = millis();
   if (currentMillis > resetTimer) {
     uint8_t cs = driver[id]->CS;
-    int chSel = diagnosticRegister & (1 << 14);
     ARGPRINT("Resetting SRR for driver: ", id);
-    if (chSel) DPRINTLN(", HB7-10");
+    if (channelSelectBit) DPRINTLN(", HB7-10");
     else DPRINTLN(", HB1-6");
 
     uint16_t resetRegister = (1 << 15);
-    if (chSel) resetRegister = resetRegister | (1 << 14);
+    if (channelSelectBit) resetRegister = resetRegister | (1 << 14);
     
     digitalWrite(cs, LOW);
     SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1));
@@ -310,10 +349,10 @@ void TapHandler::tap() {
     }
 
     // containers for diagnostic data sent from drivers to the controller
-    uint16_t retDataAnodeOn;
-    uint16_t retDataCathodeOn;
-    uint16_t retDataAnodeOff;
-    uint16_t retDataCathodeOff;
+    uint16_t anodeDiagnosticDataOn;
+    uint16_t cathodeDiagnosticDataOn;
+    uint16_t anodeDiagnosticDataOff;
+    uint16_t cathodeDiagnosticDataOff;
 
     // prepare the output data for anode and cathode
     uint16_t anodeOutputRegister = driver[anodeID]->setOutput(anodeOutputPin, ANODE);
@@ -322,21 +361,21 @@ void TapHandler::tap() {
     // turning the anode on:
     digitalWrite(driver[anodeID]->CS, LOW); // tell the anode chip we're about to write data to it
     SPI.beginTransaction(SPISettings(clockSpeed, MSBFIRST, SPI_MODE1)); // this takes a lock on the SPI bus, so take it as late as possible and give it up as early as possible (though I don't know if any other module uses this bus)
-    retDataAnodeOn = SPI.transfer16(anodeOutputRegister);
+    anodeDiagnosticDataOn = SPI.transfer16(anodeOutputRegister);
     digitalWrite(driver[anodeID]->CS, HIGH); // this clocks the data in and the chip starts to act on it
     
     // turning the cathode on:
     digitalWrite(driver[cathodeID]->CS, LOW); // repeat for the cathode
-    retDataCathodeOn = SPI.transfer16(cathodeOutputRegister);
+    cathodeDiagnosticDataOn = SPI.transfer16(cathodeOutputRegister);
     digitalWrite(driver[cathodeID]->CS, HIGH); // as soon as this completes, the tapper will be powered. so start timing the onDuration immediately.
     
     // setting up for turning both off:
-    uint32_t tWriteStart = micros();
+    uint32_t tStart = micros();
     anodeOutputRegister = driver[anodeID]->clrOutputVal(anodeOutputPin);
     cathodeOutputRegister = driver[cathodeID]->clrOutputVal(cathodeOutputPin);
     digitalWrite(driver[anodeID]->CS, LOW); // we can start to load this data into the driver chip before onDurationUS has elapsed, so we can turn it off with as little latency as possible
-    retDataAnodeOff = SPI.transfer16(anodeOutputRegister);
-    uint32_t elapsedTime = micros() - tWriteStart;
+    anodeDiagnosticDataOff = SPI.transfer16(anodeOutputRegister);
+    uint32_t elapsedTime = micros() - tStart;
     onDurationUS = elapsedTime < onDurationUS ? onDurationUS - elapsedTime : 0;
     delayMicroseconds(onDurationUS); // delay for the remainder of the onDuration
     
@@ -345,13 +384,11 @@ void TapHandler::tap() {
 
     // turn the cathode off:
     digitalWrite(driver[cathodeID]->CS, LOW);
-    retDataCathodeOff = SPI.transfer16(cathodeOutputRegister);
+    cathodeDiagnosticDataOff = SPI.transfer16(cathodeOutputRegister);
     SPI.endTransaction();
     digitalWrite(driver[cathodeID]->CS, HIGH);
 
-    // check the diagnostic data (TODO: needs rework)
-    checkDiagnosticReg(retDataAnodeOff, anodeID, anodeOutputRegister);
-    checkDiagnosticReg(retDataCathodeOff, cathodeID, cathodeOutputRegister);
+    tStart = micros();
 
     // #ifdef DEBUG
     //   #if VERSION_IS_AT_LEAST(12, 1)
@@ -361,7 +398,35 @@ void TapHandler::tap() {
     //     digitalWrite(LED, LOW);
     //   #endif
     // #endif
+
+    // check the diagnostic data - only checking diagnostic data from turning the outputs off, since the error flags won't reset themselves (except TW and PSF which likely wounldn't reset while the tap is active)
+    uint8_t anodeChannelSelectBit = (anodeOutputRegister >> driver[anodeID]->CH_SEL) & 1;
+    uint8_t cathodeChannelSelectBit = (cathodeOutputRegister >> driver[cathodeID]->CH_SEL) & 1;
+    bool sendWarningForAnode = checkDiagnosticData(anodeDiagnosticDataOff, anodeID, anodeChannelSelectBit);
+    bool sendWarningForCathode = false;
+    if ((cathodeID != anodeID) || (cathodeChannelSelectBit != anodeChannelSelectBit)) sendWarningForCathode = checkDiagnosticData(cathodeDiagnosticDataOff, cathodeID, cathodeChannelSelectBit);
+
+    if (sendWarningForAnode || sendWarningForCathode) {
+      // add any warnings to the warning queue
+      assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+      DPRINTLN("new Hbrdige driver warning");
+      if (sendWarningForAnode) {
+        addToWarningQ(HBRIDGE_DIAGNOSTIC_ERRORS);
+        addToWarningQ(anodeID);
+        addToWarningQ(driver[anodeID]->errorFlags);
+      }
+      if (sendWarningForCathode) {
+        addToWarningQ(HBRIDGE_DIAGNOSTIC_ERRORS);
+        addToWarningQ(cathodeID);
+        addToWarningQ(driver[cathodeID]->errorFlags);
+      }
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+      xSemaphoreGive(warningQMutex);
+    }
+
     if (onDurationReduction) offDurationUS += onDurationReduction;
+    elapsedTime = micros() - tStart; // from doing the diagnostic data error checking
+    if (offDurationUS > elapsedTime) offDurationUS -= elapsedTime;
   }
   else { // if it's an empty tap - ie the tapper is out of bounds. delay the same amount of time so that if there are in-bound taps it doesn't mess with the pattern cadence (which would be more confusing to debug as a designer, I think)
     offDurationUS += onDurationUS;

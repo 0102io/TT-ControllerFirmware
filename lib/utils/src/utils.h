@@ -26,6 +26,7 @@
 #define QUEUE_FULL 62
 #define BOARD_OVERHEAT 63
 #define OVERTAP 64
+#define HBRIDGE_DIAGNOSTIC_ERRORS 65
 
 // Battery pack byte codes
 #define BATTERY_PERCENT 1
@@ -134,5 +135,6 @@ extern uint16_t warningQTail;
 extern SemaphoreHandle_t warningQMutex;
 
 extern SemaphoreHandle_t tapQMutex;
+extern SemaphoreHandle_t gpTimerMutex;
 
 #endif // UTILS_H
