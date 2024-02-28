@@ -16,15 +16,6 @@
 #define PATCH 1
 #define PALM 2
 
-/*
-These are the default substrate settings for a newly flashed controller, but they can be overwritten with 
-a message from central and will be stored in non volatile memory. 
-e.g. v12d patch = PATCH, 12, 3
-*/
-#define DEFAULT_SUBSTRATE PATCH
-#define DEFAULT_SUBSTRATE_VMAJOR 12
-#define DEFAULT_SUBSTRATE_VMINOR 3
-
 #define MAX_QUEUE_SIZE 2048 // max number of row/col pairs in a tapout pattern
 // #define CPU_CLK_FREQ_OVERIDE 240 // MHz; set in esp-idf config as 80
 

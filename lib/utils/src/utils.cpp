@@ -72,14 +72,6 @@ void setupUtils() {
   substrateType = preferences.getUChar("substrateType", 0);
   substrateVMajor = preferences.getUChar("substrateVMajor", 0);
   substrateVMinor = preferences.getUChar("substrateVMinor", 0);
-  if (!substrateType) {
-    preferences.putUChar("substrateType", DEFAULT_SUBSTRATE);
-    preferences.putUChar("substrateVMajor", DEFAULT_SUBSTRATE_VMAJOR);
-    preferences.putUChar("substrateVMinor", DEFAULT_SUBSTRATE_VMINOR);
-    substrateType = DEFAULT_SUBSTRATE;
-    substrateVMajor = DEFAULT_SUBSTRATE_VMAJOR;
-    substrateVMinor = DEFAULT_SUBSTRATE_VMINOR;
-  }
   preferences.end();
 
   #ifdef CPU_CLK_FREQ_OVERIDE
