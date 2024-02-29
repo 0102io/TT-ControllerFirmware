@@ -27,6 +27,7 @@
 #define BOARD_OVERHEAT 63
 #define OVERTAP 64
 #define HBRIDGE_DIAGNOSTIC_ERRORS 65
+#define HBRIDGE_DISABLED 66
 
 // Battery pack byte codes
 #define BATTERY_PERCENT 1
@@ -76,6 +77,7 @@ void blink(int qty, int duration, uint32_t color);
 bool caseTouchDetected();
 bool fpcTouchDetected();
 void hbDisabledISR();
+void hbDisabledEvent(void * parameter);
 void IRAM_ATTR interactButtonPress();
 void setupBattery();
 void updateBatteryPercent();
@@ -108,6 +110,7 @@ extern EventGroupHandle_t notificationEventGroup;
 
 #define EVENT_BIT0 (1 << 0)
 #define EVENT_BIT1 (1 << 1)
+#define EVENT_BIT2 (1 << 2)
 
 extern bool hbDisbaledEvent;
 extern bool otaRequest;

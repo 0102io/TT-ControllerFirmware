@@ -15,6 +15,7 @@ SemaphoreHandle_t notifyMutex;
 /*
 This function runs as a separate task, and executes when the status timer alarm fires. 
 It sends regular updates of system info, tap related info, and IMU data to central. 
+TODO: this and the warning notification task should probably be moved either to utils or comms_manager
 */
 void statusNotification(void * parameter) {
   std::vector<uint8_t> statusArray(30);
@@ -86,9 +87,7 @@ void setup() {
   setupUtils();
   tapHandler.setupTapHandler();
   setupBLE(&tapHandler); // should move this later so we can't connect before we've finished setting up
-  #if VERSION_IS_AT_LEAST(12,0)
   imu.setupIMU();
-  #endif // VERSION_IS_AT_LEAST(12,0)
 
   notifyMutex = xSemaphoreCreateMutex();
   
@@ -104,16 +103,16 @@ void setup() {
     setWatchDog(true);
   #endif // VERSION_IS_AT_LEAST(12,3)
 
-  // Blink out to indicate board is ready to go
-  blink(2, 200, HEX_GREEN);
-
-  setStatusTimer(1);
+  xEventGroupSetBits(notificationEventGroup, EVENT_BIT0); // start the statusNotificaiton task
   #ifdef STRESS_TEST
     tapHandler.stressTest();
   #endif // STRESS_TEST
   updateBatteryPercent();
   delay(100);
   if (!batteryPercent) updateBatteryPercent();
+
+  // Blink out to indicate board is ready to go
+  blink(2, 200, HEX_GREEN);
 }
 
 void loop() {

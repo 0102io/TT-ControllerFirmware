@@ -180,6 +180,10 @@ void setupUtils() {
   warningQMutex = xSemaphoreCreateMutex();
   tapQMutex = xSemaphoreCreateMutex();
   gpTimerMutex = xSemaphoreCreateMutex();
+
+  uint16_t stackSize = 2000;
+  uint8_t priority = 1;
+  createTaskFunction(hbDisabledEvent, "hbDisabledTask", stackSize, priority);
 }
 
 // wrapper for xTaskCreate
@@ -405,9 +409,22 @@ firmware.
 TODO: figure out what this should be used for.
 */
 void hbDisabledISR() {
-  if (digitalRead(HBEN_INTERRUPT_PIN) == LOW) hbDisbaledEvent = true;
-  DPRINTLN("------------------- H Bridge Disabled event detected -------------------");
+  if (digitalRead(HBEN_INTERRUPT_PIN) == LOW) xEventGroupSetBits(notificationEventGroup, EVENT_BIT2); // unblock the hbDisabledEvent task
 }
+
+// sends a warning to central and resets the flag
+void hbDisabledEvent(void * parameter) {
+  for (;;) {
+    xEventGroupWaitBits(notificationEventGroup, EVENT_BIT2, pdTRUE, pdFALSE, portMAX_DELAY);
+    assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+    DPRINTLN("Warning: H bridge disbaled event detected");
+    addToWarningQ(HBRIDGE_DISABLED);
+    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+    xSemaphoreGive(warningQMutex);
+  }
+}
+
+
 
 // ISR for the interact button
 void IRAM_ATTR interactButtonPress() {
