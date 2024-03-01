@@ -1,5 +1,6 @@
 #include "comms_manager.h"
 #include "utils.h"
+#include <freertos/event_groups.h>
 extern "C" {
 #include "esp_gap_ble_api.h"
 }
@@ -14,6 +15,8 @@ BLECharacteristic * pTxCharacteristic = NULL; // pointer to characteristic used 
 BLECharacteristic *pOtaCharacteristic = NULL; // pointer to characteristic used for over the air (OTA) firmware uploads
 esp_ota_handle_t otaHandle = 0;
 bool updateFlag = false;  // OTA update flag
+
+SemaphoreHandle_t notifyMutex;
 
 /*
 Server callbacks wrapper that can access the TapHandler object created in main.cpp, 
@@ -201,6 +204,9 @@ void setupBLE(TapHandler* tapHandler) {
       bleName = "TAPPY CONTROLLER";
       break;
   }
+
+  notifyMutex = xSemaphoreCreateMutex();
+
   BLEDevice::init(bleName);
   BLEDevice::setMTU(BLE_MTU);
   pServer = BLEDevice::createServer();
@@ -251,8 +257,10 @@ void notifyCentral(uint8_t type, const std::vector<uint8_t>& data) {
     txValue[i] = data[i-1];
   }
   // use the TX characteristic
+  assert(xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE);
   pTxCharacteristic->setValue(txValue, sz+1);
   pTxCharacteristic->notify(); // Send the data over BLE
+  xSemaphoreGive(notifyMutex);
 }
 
 /*

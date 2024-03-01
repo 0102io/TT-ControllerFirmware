@@ -10,8 +10,6 @@
 TapHandler tapHandler;
 IMU imu;
 
-SemaphoreHandle_t notifyMutex;
-
 /*
 This function runs as a separate task, and executes when the status timer alarm fires. 
 It sends regular updates of system info, tap related info, and IMU data to central. 
@@ -62,9 +60,7 @@ void statusNotification(void * parameter) {
       statusArray[28] = (imu.temperature >> 8) & 0xFF;
       statusArray[29] = imu.temperature & 0xFF;
 
-      assert(xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE);
       notifyCentral(STATUS_UPDATE, statusArray);
-      xSemaphoreGive(notifyMutex);
     }
     unsigned long interval = 1000 / statusNotificationFreq;
     if (statusTimerRepeat) setStatusTimer(interval);
@@ -74,12 +70,12 @@ void statusNotification(void * parameter) {
 void warningNotification (void * parameter) {
   for (;;) {
     xEventGroupWaitBits(notificationEventGroup, EVENT_BIT1, pdTRUE, pdFALSE, portMAX_DELAY);
-    assert(xSemaphoreTake(notifyMutex, portMAX_DELAY) == pdTRUE);
     assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
-    notifyCentral(WARNING, warningQ, warningQTail);
-    warningQTail = 0;
+    if (warningQTail) {
+      notifyCentral(WARNING, warningQ, warningQTail);
+      warningQTail = 0;
+    }
     xSemaphoreGive(warningQMutex);
-    xSemaphoreGive(notifyMutex);
   }
 }
 
@@ -88,8 +84,6 @@ void setup() {
   tapHandler.setupTapHandler();
   setupBLE(&tapHandler); // should move this later so we can't connect before we've finished setting up
   imu.setupIMU();
-
-  notifyMutex = xSemaphoreCreateMutex();
   
   // TODO find more appropriate stack size with uxTaskGetStackHighWaterMark()
   uint16_t stackSize = 10000;

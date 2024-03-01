@@ -419,8 +419,8 @@ void hbDisabledEvent(void * parameter) {
     assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
     DPRINTLN("Warning: H bridge disbaled event detected");
     addToWarningQ(HBRIDGE_DISABLED);
-    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
     xSemaphoreGive(warningQMutex);
+    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
   }
 }
 
@@ -520,7 +520,7 @@ void updateBoardTempLevel(uint16_t temperature) {
     assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
     addToWarningQ(BOARD_OVERHEAT);
     addToWarningQ(boardOverheatLevel);
-    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
     xSemaphoreGive(warningQMutex);
+    xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
   }
 }

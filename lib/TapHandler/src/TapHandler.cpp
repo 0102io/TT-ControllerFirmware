@@ -146,8 +146,8 @@ void TapHandler::addToQueue(std::vector<uint8_t> data) {
         addToWarningQ((uint8_t)rejectedIndex);
       }
       if (incorrectMsgSize) addToWarningQ(INCORRECT_MSG_SIZE);
-      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
       xSemaphoreGive(warningQMutex);
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
     }
   }
 
@@ -284,6 +284,15 @@ void TapHandler::tap() {
     delayMicroseconds(offDurationUS);
     return;
   }
+  else if (onDurationUS > onDur_max) {
+    onDurationUS = onDur_max;
+    // send an oob warning
+    if(xSemaphoreTake(warningQMutex, 0) == pdTRUE) { // xBlockTime set to 0 because we don't want to block while tapping
+      addToWarningQ(PARAM_OOB);
+      xSemaphoreGive(warningQMutex);
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
+    }
+  }
 
   if (anodeOutputPin < NUM_OUTPUTS_PER_DRIVER && cathodeOutputPin < NUM_OUTPUTS_PER_DRIVER && anodeID < numDrivers && cathodeID < numDrivers) {
 
@@ -316,8 +325,8 @@ void TapHandler::tap() {
           addToWarningQ(OVERTAP);
           addToWarningQ(anodeIndex);
           addToWarningQ(cathodeIndex);
-          xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
           xSemaphoreGive(warningQMutex);
+          xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
         }
       }
 
@@ -420,8 +429,8 @@ void TapHandler::tap() {
         addToWarningQ(cathodeID);
         addToWarningQ(driver[cathodeID]->errorFlags);
       }
-      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
       xSemaphoreGive(warningQMutex);
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
     }
 
     if (onDurationReduction) offDurationUS += onDurationReduction;
