@@ -75,6 +75,7 @@ async function uploadOTA() {
   
       // Read the firmware.bin file
       const response = await fetch('firmware.bin');
+    //   const response = await fetch('../.pio/build/tappytap_controller/firmware.bin');
       const updateData = await response.arrayBuffer();
   
       if (updateData.byteLength === 0) {

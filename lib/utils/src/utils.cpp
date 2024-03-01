@@ -45,6 +45,7 @@ SemaphoreHandle_t gpTimerMutex;
 uint8_t batteryPercent = 0;
 float batteryPercentFloat = 0;
 float batteryVoltage = 0;
+bool fuelGuageFound = false;
 float batteryCRate = 0;
 uint16_t imuTemperature;
 uint8_t boardOverheatLevel = 0;
@@ -269,13 +270,14 @@ which is the default setting (0x971C) plus:
 */
 void setupFuelGauge() {
   if (fuelGauge.begin()) {
+    fuelGuageFound = true;
     DPRINTLN("Fuel gauge found");
   }
   else DPRINTLN("Fuel gauge not found");
   delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate (about 200ms)
   setFuelGaugeConfig();
   delay(1);
-  batteryPercentFloat = fuelGauge.cellPercent();
+  if (fuelGuageFound) batteryPercentFloat = fuelGauge.cellPercent();
   batteryPercent = (uint8_t)ceil(batteryPercentFloat); // round up so we never say it's at 0 if it reports any charge
   ARGPRINTLN("battery percent float = ", batteryPercentFloat);
 }

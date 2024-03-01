@@ -131,7 +131,10 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
           ARGPRINT("Message type with byte code: ", msgType);
           DPRINTLN(" not known.");
           std::vector<uint8_t> type = {msgType};
-          notifyCentral(INVALID_MSG_TYPE, type);
+          assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+          addToWarningQ(INVALID_MSG_TYPE);
+          xSemaphoreGive(warningQMutex);
+          xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
           break;
       }
     }
@@ -153,7 +156,10 @@ void otaCallbacks::onWrite(BLECharacteristic *pCharacteristic)
     while(!otaProceed && timeout > millis()) delay(1);
     otaRequest = false; // reset flag
     if (!otaProceed) {
-      notifyCentral(OTA_TIMEOUT);
+      assert(xSemaphoreTake(warningQMutex, portMAX_DELAY) == pdTRUE);
+      addToWarningQ(OTA_TIMEOUT);
+      xSemaphoreGive(warningQMutex);
+      xEventGroupSetBits(notificationEventGroup, EVENT_BIT1); // unblock the warningNotification task
       return;
     }
     DPRINTLN("BeginOTA");

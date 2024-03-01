@@ -125,6 +125,7 @@ extern uint8_t substrateVMinor;
 
 extern uint8_t batteryPercent;
 extern float batteryPercentFloat;
+extern bool fuelGuageFound;
 extern float batteryVoltage;
 extern float batteryCRate;
 extern volatile bool socChanged;
