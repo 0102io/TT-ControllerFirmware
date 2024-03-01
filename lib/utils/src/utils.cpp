@@ -43,6 +43,7 @@ SemaphoreHandle_t tapQMutex;
 SemaphoreHandle_t gpTimerMutex;
 
 uint8_t batteryPercent = 0;
+float batteryPercentFloat = 0;
 float batteryVoltage = 0;
 float batteryCRate = 0;
 uint16_t imuTemperature;
@@ -252,7 +253,8 @@ Callback for receiving alert pin interrupts from the fuel gauge, then reset the 
 void receiveAlertSOC() {
   DPRINTLN("received SOC alert");
   delay(1);
-  batteryPercent = (uint8_t)fuelGauge.cellPercent();
+  batteryPercentFloat = fuelGauge.cellPercent();
+  batteryPercent = (uint8_t)ceil(batteryPercentFloat); // round up so we never say it's at 0 if it reports any charge
   delay(1);
   socChanged = false;
   fuelGauge.clearAlertFlag(MAX1704X_ALERTFLAG_SOC_CHANGE); // clear the alert flag in the status register
@@ -273,8 +275,9 @@ void setupFuelGauge() {
   delay(200); // give the fuel gauge time to do it's reset and calculate a new estimate (about 200ms)
   setFuelGaugeConfig();
   delay(1);
-  batteryPercent = (uint8_t)fuelGauge.cellPercent();
-  ARGPRINTLN("battery percent = ", batteryPercent);
+  batteryPercentFloat = fuelGauge.cellPercent();
+  batteryPercent = (uint8_t)ceil(batteryPercentFloat); // round up so we never say it's at 0 if it reports any charge
+  ARGPRINTLN("battery percent float = ", batteryPercentFloat);
 }
 
 void setFuelGaugeConfig() {
