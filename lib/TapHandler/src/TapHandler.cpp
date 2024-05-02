@@ -5,8 +5,6 @@
 //---------------------- Tap Handler Class ----------------------
 
 TapHandler::TapHandler() {
-    lastOnDur = onDur_init;
-    lastOffDur = (uint16_t)offDur_init;
 }
 
 void TapHandler::setupTapHandler() {
@@ -284,8 +282,8 @@ void TapHandler::tap() {
     delayMicroseconds(offDurationUS);
     return;
   }
-  else if (onDurationUS > onDur_max) {
-    onDurationUS = onDur_max;
+  else if (onDurationUS > onDurationUS_max) {
+    onDurationUS = onDurationUS_max;
     // send an oob warning
     if(xSemaphoreTake(warningQMutex, 0) == pdTRUE) { // xBlockTime set to 0 because we don't want to block while tapping
       addToWarningQ(PARAM_OOB);

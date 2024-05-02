@@ -78,9 +78,6 @@ public:
 private:
     const uint32_t clockSpeed = 2000000;
 
-    uint16_t lastOnDur;
-    uint16_t lastOffDur;
-
     uint8_t currentTapOutID;
 
     // H bridge driver object array

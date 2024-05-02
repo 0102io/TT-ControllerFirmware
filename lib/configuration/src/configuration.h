@@ -101,10 +101,8 @@ CONFIG_BT_CTRL_MAIN_XTAL_PU_DURING_LIGHT_SLEEP=y
 
 #define MAX_INACTIVITY_MINUTES 10 // go to sleep after this many minutes
 
-// tap parameter initial and limit values
-static const unsigned long onDur_init = 300; // tens of microseconds (hundreds of a millisecond)
-static const unsigned long onDur_max = 300;
-static const unsigned long offDur_init = 1000; // tenths of a ms
+// tap parameter limit values
+static const unsigned long onDurationUS_max = 3000; // microseconds
 
 // stress test vector
 static const std::vector<uint8_t> stressTestVect = {

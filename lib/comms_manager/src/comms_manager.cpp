@@ -94,8 +94,8 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
           deviceInfo[11] = substrateType;
           deviceInfo[12] = substrateVMajor;
           deviceInfo[13] = substrateVMinor;
-          deviceInfo[14] = (uint8_t)(onDur_max >> 8);
-          deviceInfo[15] = (uint8_t)(onDur_max);
+          deviceInfo[14] = (uint8_t)(onDurationUS_max >> 8);
+          deviceInfo[15] = (uint8_t)(onDurationUS_max);
           notifyCentral(DEVICE_INFO, deviceInfo);
           break;
         case UPDATE_STATUS_FREQUENCY:
