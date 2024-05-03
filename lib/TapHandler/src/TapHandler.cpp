@@ -165,14 +165,24 @@ bool TapHandler::checkDiagnosticData(uint16_t diagnosticData, uint8_t driverID, 
     newErrorFlag = true;
   }
 
-  // if we have any over current errors, we need to try to do a status register reset
-  if (newErrors & (1 << OC_7TO10_ERROR_BIT) && (millis() - driver[driverID]->srrTimerLastReset_outputs7to10) > SRR_MIN_RESET_MS) {
+  // if we have any over current or PSF errors, we need to try to do a status register reset
+  // TODO: need to figure out if there is a seperate SRR cooldown for each set of outputs or if they share one.
+  unsigned long currentMillis = millis();
+  if (newErrors & (1 << OC_7TO10_ERROR_BIT) && (currentMillis - driver[driverID]->srrTimerLastReset_outputs7to10) > SRR_MIN_RESET_MS) {
     srrReset(driverID, 1);
     driver[driverID]->srrTimerLastReset_outputs7to10 = millis();
   }
-  if (newErrors & (1 << OC_1TO6_ERROR_BIT) && (millis() - driver[driverID]->srrTimerLastReset_outputs1to6) > SRR_MIN_RESET_MS) {
+  if (newErrors & (1 << OC_1TO6_ERROR_BIT) && (currentMillis - driver[driverID]->srrTimerLastReset_outputs1to6) > SRR_MIN_RESET_MS) {
     srrReset(driverID, 0);
     driver[driverID]->srrTimerLastReset_outputs1to6 = millis();
+  }
+  if (newErrors & (1 << PSF_ERROR_BIT) && driverChannelSelectBit && (currentMillis - driver[driverID]->srrTimerLastReset_outputs7to10) > SRR_MIN_RESET_MS) {
+    srrReset(driverID, 1);
+    driver[driverID]->srrTimerLastReset_outputs7to10 = millis();
+  }
+  if (newErrors & (1 << PSF_ERROR_BIT) && !driverChannelSelectBit && (currentMillis - driver[driverID]->srrTimerLastReset_outputs7to10) > SRR_MIN_RESET_MS) {
+    srrReset(driverID, 0);
+    driver[driverID]->srrTimerLastReset_outputs7to10 = millis();
   }
 
   return newErrorFlag;
@@ -466,6 +476,16 @@ Loads the stressTestVect from configuration.cpp as if it were a message we recei
 void TapHandler::stressTest() {
   if (tapQ.isEmpty()) {
     receiveTapOut(stressTestVect);
+  }
+}
+
+void TapHandler::statusRegisterReset() {
+  for (int i = 0; i < numDrivers; i++) {
+    srrReset(i, 1);
+    driver[i]->srrTimerLastReset_outputs1to6 = millis();
+    delay(150); // need to delay at least 100ms between successive SRR commands to the same IC
+    srrReset(i, 0);
+    driver[i]->srrTimerLastReset_outputs7to10 = millis();
   }
 }
 

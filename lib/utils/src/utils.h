@@ -12,6 +12,7 @@
 #define CANCEL_AND_TAP 3
 #define UPDATE_STATUS_FREQUENCY 4
 #define CHANGE_DEFAULT_SUBSTRATE 5
+#define STATUS_REGISTER_RST 6
 
 // BLE byte code sent message types
 #define STATUS_UPDATE 1

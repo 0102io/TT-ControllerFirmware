@@ -9,6 +9,7 @@ const SentMessageType = {
     TAP_OUT: 1,
     GET_DEVICE_INFO: 2,
     CHANGE_DEFAULT_SUBSTRATE: 5,
+    STATUS_REGISTER_RST: 6
 };
 
 const ReceivedMessageType = {
@@ -323,6 +324,12 @@ function changeSubstrate() {
     sendMessage(arr, "CHANGE_SUBSTRATE_TYPE");
 }
 
+function sendSRR() {
+    const arr = new Uint8Array(1);
+    arr[0] = SentMessageType.STATUS_REGISTER_RST;
+    sendMessage(arr, "STATUS_REGISTER_RST");
+}
+
 function appendToConsole(message, additionalMessage = null) {
     const consoleLog = document.getElementById('consoleLog');
     const newLog = document.createElement('div');
@@ -398,3 +405,4 @@ document.getElementById("clearConsoleBtn").addEventListener("click", clearConsol
 document.getElementById("uploadCodeBtn").addEventListener("click", uploadOTA);
 document.getElementById("getDeviceInfoBtn").addEventListener("click", getDeviceInfo);
 document.getElementById("changeSubstrateBtn").addEventListener("click", changeSubstrate);
+document.getElementById("srrBtn").addEventListener("click", sendSRR);

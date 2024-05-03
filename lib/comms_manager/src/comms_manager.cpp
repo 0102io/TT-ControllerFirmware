@@ -127,6 +127,9 @@ void fromCentralCallbacks::onWrite(BLECharacteristic *pCharacteristic) {
             esp_restart();
           }
           break;
+        case STATUS_REGISTER_RST:
+          tapHandler->statusRegisterReset();
+          break;
         default:
           ARGPRINT("Message type with byte code: ", msgType);
           DPRINTLN(" not known.");

@@ -72,6 +72,7 @@ public:
     void receiveTapOut(std::vector<uint8_t> msg);
     void tap();
     void stressTest();
+    void statusRegisterReset();
     bool isDoneTapping();
     std::vector<uint8_t> getStatus();
 
